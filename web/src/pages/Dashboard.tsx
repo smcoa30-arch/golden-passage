@@ -54,9 +54,9 @@ export function Dashboard() {
         {/* Daily Strategy */}
         <div className="card">
           <h2 className="text-xl font-semibold mb-4">Today's AI Strategy</h2>
-          <div className="bg-primary-50 rounded-lg p-4">
-            <h3 className="font-semibold text-primary-900 mb-2">Trend Following Strategy</h3>
-            <ul className="text-sm text-primary-800 space-y-1">
+          <div className="bg-orange-50 rounded-lg p-4">
+            <h3 className="font-semibold text-orange-900 mb-2">Trend Following Strategy</h3>
+            <ul className="text-sm text-orange-800 space-y-1">
               <li>• Price above 50 EMA</li>
               <li>• RSI confirmation above 50</li>
               <li>• Entry on pullback to 20 EMA</li>
@@ -86,7 +86,7 @@ function StatCard({
     <div className="card">
       <div className="flex justify-between items-start mb-2">
         <p className="text-gray-600 text-sm">{title}</p>
-        <Icon className="text-primary-600" size={20} />
+        <Icon className="text-orange-600" size={20} />
       </div>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
       <p className={`text-sm mt-1 ${positive ? 'text-green-600' : 'text-gray-500'}`}>

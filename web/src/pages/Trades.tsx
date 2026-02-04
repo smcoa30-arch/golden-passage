@@ -23,14 +23,14 @@ export function Trades() {
               <input 
                 type="text" 
                 placeholder="Search trades..."
-                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
             </div>
           </div>
           <select 
             value={filter} 
             onChange={(e) => setFilter(e.target.value)}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
           >
             <option value="all">All Trades</option>
             <option value="win">Winners</option>

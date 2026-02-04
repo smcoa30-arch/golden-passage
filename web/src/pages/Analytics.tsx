@@ -68,12 +68,12 @@ function PairStat({ pair, winRate, trades }: { pair: string; winRate: number; tr
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div 
-            className="bg-primary-600 h-2 rounded-full transition-all"
+            className="bg-orange-600 h-2 rounded-full transition-all"
             style={{ width: `${winRate}%` }}
           />
         </div>
       </div>
-      <span className="ml-4 font-semibold text-primary-600">{winRate}%</span>
+      <span className="ml-4 font-semibold text-orange-600">{winRate}%</span>
     </div>
   );
 }
@@ -102,7 +102,7 @@ function SessionStat({ session, trades, winRate }: { session: string; trades: nu
         <p className="font-medium">{session} Session</p>
         <p className="text-sm text-gray-600">{trades} trades</p>
       </div>
-      <span className="font-semibold text-primary-600">{winRate}%</span>
+      <span className="font-semibold text-orange-600">{winRate}%</span>
     </div>
   );
 }

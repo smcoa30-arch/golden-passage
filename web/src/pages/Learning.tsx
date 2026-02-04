@@ -80,7 +80,7 @@ export function Learning() {
                   <td className="py-3 px-4">{strategy.avgRR}</td>
                   <td className="py-3 px-4 text-gray-600">{strategy.bestMarket}</td>
                   <td className="py-3 px-4">
-                    <button className="text-primary-600 hover:text-primary-700 font-medium">
+                    <button className="text-orange-600 hover:text-orange-700 font-medium">
                       Learn →
                     </button>
                   </td>
@@ -112,8 +112,8 @@ function CourseCard({ title, description, lessons, duration, icon: Icon }: {
 }) {
   return (
     <div className="card hover:shadow-md transition-shadow">
-      <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mb-4">
-        <Icon className="text-primary-600" size={24} />
+      <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center mb-4">
+        <Icon className="text-orange-600" size={24} />
       </div>
       <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
       <p className="text-gray-600 text-sm mb-4">{description}</p>

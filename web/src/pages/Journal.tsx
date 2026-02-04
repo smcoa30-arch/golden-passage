@@ -44,7 +44,7 @@ export function Journal() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
             <input 
               type="date" 
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div>
@@ -52,12 +52,12 @@ export function Journal() {
             <textarea 
               rows={3}
               placeholder="Describe today's market conditions..."
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Emotional State</label>
-            <select className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500">
+            <select className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500">
               <option>Calm and focused</option>
               <option>Confident</option>
               <option>Anxious</option>
@@ -70,7 +70,7 @@ export function Journal() {
             <textarea 
               rows={3}
               placeholder="What did you learn today?"
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <div className="flex gap-4">
@@ -95,7 +95,7 @@ function ChecklistCard({ title, items }: { title: string; items: { text: string;
       <h3 className="font-semibold text-gray-900 mb-3">{title}</h3>
       <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
         <div 
-          className="bg-primary-600 h-2 rounded-full transition-all"
+          className="bg-orange-600 h-2 rounded-full transition-all"
           style={{ width: `${progress}%` }}
         />
       </div>
