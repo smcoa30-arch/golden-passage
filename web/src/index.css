@@ -10,10 +10,20 @@
 
 @layer components {
   .btn-primary {
-    @apply bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors;
+    @apply bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors;
   }
   
   .card {
     @apply bg-white rounded-xl shadow-sm p-6;
   }
+}
+
+/* Ensure buttons are clickable */
+button {
+  cursor: pointer;
+}
+
+/* Fix for navigation */
+a {
+  text-decoration: none;
 }
