@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   TrendingUp, 
@@ -25,7 +25,14 @@ const navItems = [
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handleNavClick = (path: string) => {
+    console.log('Navigation clicked:', path);
+    navigate(path);
+    setSidebarOpen(false);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -35,17 +42,24 @@ export function Layout({ children }: LayoutProps) {
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
               <button
+                type="button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
                 className="p-2 rounded-md text-gray-600 hover:text-gray-900 lg:hidden"
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <Link to="/" className="ml-2 text-xl font-bold text-primary-600">
+              <Link to="/" className="ml-2 text-xl font-bold text-orange-600 hover:text-orange-700">
                 Golden Passage
               </Link>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="btn-primary">Sign In</button>
+              <button 
+                type="button"
+                onClick={() => alert('Sign In coming soon!')}
+                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+              >
+                Sign In
+              </button>
             </div>
           </div>
         </div>
@@ -53,35 +67,30 @@ export function Layout({ children }: LayoutProps) {
 
       <div className="flex">
         {/* Sidebar */}
-        <aside className={`
-          fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out
-          lg:relative lg:transform-none lg:min-h-[calc(100vh-4rem)]
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          mt-16 lg:mt-0
-        `}>
+        <aside 
+          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out
+            lg:relative lg:transform-none lg:min-h-[calc(100vh-4rem)]
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+            mt-16 lg:mt-0`}
+        >
           <nav className="p-4 space-y-1">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
               return (
-                <Link
+                <button
                   key={item.path}
-                  to={item.path}
-                  onClick={() => {
-                    console.log('Navigating to:', item.path);
-                    setSidebarOpen(false);
-                  }}
-                  className={`
-                    flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer
+                  type="button"
+                  onClick={() => handleNavClick(item.path)}
+                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left
                     ${isActive 
-                      ? 'bg-primary-50 text-primary-700' 
+                      ? 'bg-orange-50 text-orange-700' 
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    }
-                  `}
+                    }`}
                 >
                   <Icon size={20} />
                   <span className="font-medium">{item.label}</span>
-                </Link>
+                </button>
               );
             })}
           </nav>
