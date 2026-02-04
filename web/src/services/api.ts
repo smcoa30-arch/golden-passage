@@ -50,10 +50,10 @@ async function fetchWithFallback(endpoint: string, mockResponse?: any) {
 
 export const api = {
   // Auth
-  login: (email: string, password: string) => 
+  login: (_email: string, _password: string) => 
     fetchWithFallback('/auth/login', { message: 'Login endpoint', token: 'mock-jwt-token' }),
   
-  register: (data: any) => 
+  register: (_data: any) => 
     fetchWithFallback('/auth/register', { message: 'Register endpoint' }),
 
   // Dashboard
@@ -68,8 +68,8 @@ export const api = {
   getTrades: () => 
     fetchWithFallback('/trades', mockData.trades),
   
-  createTrade: (trade: any) => 
-    fetchWithFallback('/trades', { message: 'Trade created', trade }),
+  createTrade: (_trade: any) => 
+    fetchWithFallback('/trades', { message: 'Trade created' }),
 };
 
 export default api;
