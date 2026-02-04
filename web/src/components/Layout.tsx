@@ -67,9 +67,12 @@ export function Layout({ children }: LayoutProps) {
                 <Link
                   key={item.path}
                   to={item.path}
-                  onClick={() => setSidebarOpen(false)}
+                  onClick={() => {
+                    console.log('Navigating to:', item.path);
+                    setSidebarOpen(false);
+                  }}
                   className={`
-                    flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors
+                    flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors cursor-pointer
                     ${isActive 
                       ? 'bg-primary-50 text-primary-700' 
                       : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'

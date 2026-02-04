@@ -8,7 +8,7 @@ import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 
 function App() {
-  console.log('App rendering'); // Debug log
+  console.log('App rendering, pathname:', window.location.pathname);
   
   return (
     <Layout>
@@ -19,6 +19,7 @@ function App() {
         <Route path="/analytics" element={<Analytics />} />
         <Route path="/journal" element={<Journal />} />
         <Route path="/learning" element={<Learning />} />
+        <Route path="*" element={<div className="p-8 text-center"><h1>404 - Page Not Found</h1></div>} />
       </Routes>
     </Layout>
   );
