@@ -1,4 +1,4 @@
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   TrendingUp, 
@@ -6,16 +6,18 @@ import {
   BookOpen, 
   Edit3,
   Menu,
-  X
+  X,
+  LogOut,
+  User
 } from 'lucide-react';
 import { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 
 interface LayoutProps {
   children: React.ReactNode;
 }
 
 const navItems = [
-  { path: '/', label: 'Home', icon: LayoutDashboard },
   { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { path: '/trades', label: 'Trades', icon: TrendingUp },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
@@ -26,12 +28,21 @@ const navItems = [
 export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNavClick = (path: string) => {
-    console.log('Navigation clicked:', path);
     navigate(path);
     setSidebarOpen(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
@@ -48,18 +59,31 @@ export function Layout({ children }: LayoutProps) {
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
-              <Link to="/" className="ml-2 text-xl font-bold text-orange-600 hover:text-orange-700">
-                Golden Passage
-              </Link>
-            </div>
-            <div className="flex items-center space-x-4">
               <button 
-                type="button"
-                onClick={() => alert('Sign In coming soon!')}
-                className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+                onClick={() => navigate('/dashboard')}
+                className="ml-2 text-xl font-bold text-orange-600 hover:text-orange-700"
               >
-                Sign In
+                Golden Passage
               </button>
+            </div>
+            
+            <div className="flex items-center space-x-4">
+              {user && (
+                <div className="flex items-center space-x-3">
+                  <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
+                    <User size={16} />
+                    <span>{user.email}</span>
+                  </div>
+                  <button 
+                    type="button"
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <LogOut size={18} />
+                    <span className="hidden sm:inline">Logout</span>
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -93,11 +117,21 @@ export function Layout({ children }: LayoutProps) {
                 </button>
               );
             })}
+            
+            {/* Logout in sidebar for mobile */}
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 lg:hidden"
+            >
+              <LogOut size={20} />
+              <span className="font-medium">Logout</span>
+            </button>
           </nav>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
           {children}
         </main>
       </div>
