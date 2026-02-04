@@ -8,6 +8,8 @@ import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 
 function App() {
+  console.log('App rendering'); // Debug log
+  
   return (
     <Layout>
       <Routes>
