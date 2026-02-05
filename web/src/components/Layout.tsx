@@ -156,7 +156,11 @@ export function Layout({ children }: LayoutProps) {
                   Get personalized trade analysis and strategy recommendations
                 </p>
                 <button 
-                  onClick={() => navigate('/dashboard')}
+                  onClick={() => {
+                    navigate('/trades');
+                    // Store a flag to open AI planner when trades page loads
+                    sessionStorage.setItem('openAIPlanner', 'true');
+                  }}
                   className="w-full py-2 px-3 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-sm transition-colors"
                 >
                   Ask AI Assistant

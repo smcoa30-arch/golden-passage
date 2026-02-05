@@ -204,16 +204,22 @@ export function Dashboard() {
       maxDrawdownPercent: maxDDPercent
     });
 
-    // Check prop firm limits
+    // Check prop firm limits - only lock if there are actual losses
     const todayTrades = trades.filter(t => {
       const tradeDate = new Date(t.date).toDateString();
       const today = new Date().toDateString();
       return tradeDate === today;
     });
     const todayPnl = todayTrades.reduce((sum, t) => sum + t.pnl, 0);
-    const todayLossPercent = Math.abs(todayPnl) / startingEquity;
+    const todayLossPercent = todayPnl < 0 ? Math.abs(todayPnl) / startingEquity : 0;
     
-    setJournalLocked(todayLossPercent >= PROP_FIRM_LIMITS.dailyLoss || maxDDPercent >= PROP_FIRM_LIMITS.maxDrawdown * 100);
+    // Only lock if user has actual trades AND has exceeded limits
+    const shouldLock = trades.length > 0 && (
+      todayLossPercent >= PROP_FIRM_LIMITS.dailyLoss || 
+      maxDDPercent >= PROP_FIRM_LIMITS.maxDrawdown * 100
+    );
+    
+    setJournalLocked(shouldLock);
   }, [filteredTrades, startingEquity, trades]);
 
   // Daily P&L

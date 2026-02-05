@@ -223,6 +223,13 @@ export function Trades() {
       }
     }
     setLoading(false);
+    
+    // Check if AI planner should be opened from sidebar
+    const openAI = sessionStorage.getItem('openAIPlanner');
+    if (openAI === 'true') {
+      setShowAIPlanner(true);
+      sessionStorage.removeItem('openAIPlanner');
+    }
   }, []);
 
   // Load draft
