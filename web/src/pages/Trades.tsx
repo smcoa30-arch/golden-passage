@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Search, Plus, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../config/firebase';
-import { collection, query, orderBy, onSnapshot, where, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';
 
 interface Trade {
   id: string;
@@ -15,11 +13,23 @@ interface Trade {
   strategy: string;
   notes?: string;
   lotSize?: number;
-  userId: string;
+  userId?: string;
 }
 
 const strategies = ['Trend Following', 'Breakout', 'Support/Resistance', 'Scalping', 'News Trading', 'Other'];
 const pairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD', 'USD/CAD', 'NZD/USD', 'XAU/USD', 'BTC/USD', 'ETH/USD'];
+
+// localStorage helpers
+const STORAGE_KEY = 'trades';
+
+const loadTrades = (): Trade[] => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  return saved ? JSON.parse(saved) : [];
+};
+
+const saveTrades = (trades: Trade[]) => {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(trades));
+};
 
 export function Trades() {
   const { user } = useAuth();
@@ -36,84 +46,72 @@ export function Trades() {
     type: 'Buy' as 'Buy' | 'Sell',
     entry: '',
     exit: '',
-    lotSize: '',
+    lotSize: '1',
     strategy: 'Trend Following',
     date: new Date().toISOString().split('T')[0],
     notes: '',
   });
 
   useEffect(() => {
-    if (!user) return;
+    const loaded = loadTrades();
+    setTrades(loaded);
+    setLoading(false);
+  }, []);
 
-    const tradesQuery = query(
-      collection(db, 'trades'),
-      where('userId', '==', user.uid),
-      orderBy('date', 'desc')
-    );
-
-    const unsubscribe = onSnapshot(tradesQuery, (snapshot) => {
-      const tradesData: Trade[] = [];
-      snapshot.docs.forEach((doc) => {
-        tradesData.push({ id: doc.id, ...doc.data() } as Trade);
-      });
-      setTrades(tradesData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [user]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
 
     const entryPrice = parseFloat(formData.entry);
     const exitPrice = parseFloat(formData.exit);
     const lotSize = parseFloat(formData.lotSize) || 1;
     
-    // Calculate P&L
+    if (isNaN(entryPrice) || isNaN(exitPrice)) {
+      alert('Please enter valid entry and exit prices');
+      return;
+    }
+    
+    // Calculate P&L (simplified)
     let pnl = 0;
+    const pipValue = 10; // $10 per pip for standard lot
+    const pipSize = formData.pair.includes('JPY') ? 0.01 : 0.0001;
+    
     if (formData.type === 'Buy') {
-      pnl = (exitPrice - entryPrice) * lotSize * 100000; // Standard lot
+      pnl = ((exitPrice - entryPrice) / pipSize) * pipValue * lotSize;
     } else {
-      pnl = (entryPrice - exitPrice) * lotSize * 100000;
+      pnl = ((entryPrice - exitPrice) / pipSize) * pipValue * lotSize;
     }
 
-    const tradeData = {
+    const tradeData: Trade = {
       ...formData,
+      id: editingTrade ? editingTrade.id : Date.now().toString(),
       entry: entryPrice,
       exit: exitPrice,
       lotSize,
       pnl: Math.round(pnl * 100) / 100,
-      userId: user.uid,
-      createdAt: serverTimestamp(),
+      userId: user?.uid,
     };
 
-    try {
-      if (editingTrade) {
-        await updateDoc(doc(db, 'trades', editingTrade.id), tradeData);
-        setEditingTrade(null);
-      } else {
-        await addDoc(collection(db, 'trades'), tradeData);
-      }
-      
-      setShowAddModal(false);
-      resetForm();
-    } catch (error) {
-      console.error('Error saving trade:', error);
-      alert('Error saving trade. Please try again.');
+    let updatedTrades: Trade[];
+    if (editingTrade) {
+      updatedTrades = trades.map(t => t.id === editingTrade.id ? tradeData : t);
+    } else {
+      updatedTrades = [tradeData, ...trades];
     }
+    
+    setTrades(updatedTrades);
+    saveTrades(updatedTrades);
+    
+    setShowAddModal(false);
+    setEditingTrade(null);
+    resetForm();
   };
 
-  const handleDelete = async (tradeId: string) => {
+  const handleDelete = (tradeId: string) => {
     if (!confirm('Are you sure you want to delete this trade?')) return;
     
-    try {
-      await deleteDoc(doc(db, 'trades', tradeId));
-    } catch (error) {
-      console.error('Error deleting trade:', error);
-      alert('Error deleting trade. Please try again.');
-    }
+    const updated = trades.filter(t => t.id !== tradeId);
+    setTrades(updated);
+    saveTrades(updated);
   };
 
   const handleEdit = (trade: Trade) => {
@@ -123,7 +121,7 @@ export function Trades() {
       type: trade.type,
       entry: trade.entry.toString(),
       exit: trade.exit.toString(),
-      lotSize: trade.lotSize?.toString() || '',
+      lotSize: trade.lotSize?.toString() || '1',
       strategy: trade.strategy,
       date: trade.date,
       notes: trade.notes || '',
@@ -137,7 +135,7 @@ export function Trades() {
       type: 'Buy',
       entry: '',
       exit: '',
-      lotSize: '',
+      lotSize: '1',
       strategy: 'Trend Following',
       date: new Date().toISOString().split('T')[0],
       notes: '',
@@ -145,13 +143,11 @@ export function Trades() {
   };
 
   const filteredTrades = trades.filter((trade) => {
-    // Search filter
     if (search && !trade.pair.toLowerCase().includes(search.toLowerCase()) && 
         !trade.strategy.toLowerCase().includes(search.toLowerCase())) {
       return false;
     }
     
-    // Type filter
     if (filter === 'win') return trade.pnl > 0;
     if (filter === 'loss') return trade.pnl < 0;
     return true;

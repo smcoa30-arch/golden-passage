@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react';
 import { TrendingUp, Activity, Target, Calendar, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { db } from '../config/firebase';
-import { collection, query, orderBy, limit, onSnapshot, where } from 'firebase/firestore';
 
 interface Trade {
   id: string;
@@ -24,6 +22,12 @@ interface Stats {
   currentStreak: number;
 }
 
+// Load trades from localStorage
+const loadTrades = (): Trade[] => {
+  const saved = localStorage.getItem('trades');
+  return saved ? JSON.parse(saved) : [];
+};
+
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -43,60 +47,54 @@ export function Dashboard() {
   });
 
   useEffect(() => {
-    if (!user) return;
+    // Load trades from localStorage
+    const loadedTrades = loadTrades();
+    setTrades(loadedTrades);
+    
+    // Calculate stats
+    let wins = 0;
+    let losses = 0;
+    let totalWinAmount = 0;
+    let totalLossAmount = 0;
+    let totalPnl = 0;
+    let currentStreak = 0;
 
-    // Subscribe to trades
-    const tradesQuery = query(
-      collection(db, 'trades'),
-      where('userId', '==', user.uid),
-      orderBy('date', 'desc'),
-      limit(5)
-    );
-
-    const unsubscribe = onSnapshot(tradesQuery, (snapshot) => {
-      const tradesData: Trade[] = [];
-      let wins = 0;
-      let losses = 0;
-      let totalWinAmount = 0;
-      let totalLossAmount = 0;
-      let totalPnl = 0;
-      let currentStreak = 0;
-
-      snapshot.docs.forEach((doc) => {
-        const trade = { id: doc.id, ...doc.data() } as Trade;
-        tradesData.push(trade);
-        
-        if (trade.pnl > 0) {
-          wins++;
-          totalWinAmount += trade.pnl;
-          if (currentStreak >= 0) currentStreak++;
-          else currentStreak = 1;
-        } else if (trade.pnl < 0) {
-          losses++;
-          totalLossAmount += Math.abs(trade.pnl);
-          if (currentStreak <= 0) currentStreak--;
-          else currentStreak = -1;
-        }
-        totalPnl += trade.pnl;
-      });
-
-      const totalTrades = wins + losses;
-      const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
-      const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : totalWinAmount > 0 ? Infinity : 0;
-
-      setTrades(tradesData);
-      setStats({
-        totalTrades,
-        winRate: Math.round(winRate * 10) / 10,
-        profitFactor: Math.round(profitFactor * 100) / 100,
-        totalPnl,
-        currentStreak: Math.abs(currentStreak),
-      });
-      setLoading(false);
+    loadedTrades.forEach((trade) => {
+      if (trade.pnl > 0) {
+        wins++;
+        totalWinAmount += trade.pnl;
+        if (currentStreak >= 0) currentStreak++;
+        else currentStreak = 1;
+      } else if (trade.pnl < 0) {
+        losses++;
+        totalLossAmount += Math.abs(trade.pnl);
+        if (currentStreak <= 0) currentStreak--;
+        else currentStreak = -1;
+      }
+      totalPnl += trade.pnl;
     });
 
-    return () => unsubscribe();
-  }, [user]);
+    const totalTrades = wins + losses;
+    const winRate = totalTrades > 0 ? (wins / totalTrades) * 100 : 0;
+    const profitFactor = totalLossAmount > 0 ? totalWinAmount / totalLossAmount : totalWinAmount > 0 ? 999 : 0;
+
+    setStats({
+      totalTrades,
+      winRate: Math.round(winRate * 10) / 10,
+      profitFactor: Math.round(profitFactor * 100) / 100,
+      totalPnl,
+      currentStreak: Math.abs(currentStreak),
+    });
+    setLoading(false);
+
+    // Listen for storage changes (when trades are added from other tabs)
+    const handleStorageChange = () => {
+      const updated = loadTrades();
+      setTrades(updated);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   const generateNewStrategy = () => {
     const strategies = [
@@ -114,6 +112,11 @@ export function Dashboard() {
         title: 'Support & Resistance',
         description: 'Trade bounces from key support/resistance levels',
         rules: ['Mark key S/R levels', 'Wait for price reaction', 'Candlestick confirmation', 'Tight stop loss']
+      },
+      {
+        title: 'Moving Average Crossover',
+        description: 'Trade MA crossovers for trend entries',
+        rules: ['Fast MA crosses above Slow MA', 'Price above both MAs', 'Confirm with volume', 'Trail stop with MA']
       }
     ];
     const random = strategies[Math.floor(Math.random() * strategies.length)];
@@ -133,7 +136,7 @@ export function Dashboard() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600">Welcome back, {user?.email?.split('@')[0]}</p>
+          <p className="text-gray-600">Welcome back, {user?.email?.split('@')[0] || 'Trader'}</p>
         </div>
         <button 
           onClick={() => navigate('/trades')}
@@ -155,7 +158,7 @@ export function Dashboard() {
         />
         <StatCard 
           title="Profit Factor"
-          value={stats.profitFactor.toString()}
+          value={stats.profitFactor >= 999 ? '∞' : stats.profitFactor.toString()}
           change={stats.profitFactor >= 1.5 ? 'Good' : 'Improve'}
           icon={Activity}
           positive={stats.profitFactor >= 1}
@@ -169,8 +172,8 @@ export function Dashboard() {
         />
         <StatCard 
           title="Current Streak"
-          value={`${stats.currentStreak} Wins`}
-          change="Keep it up!"
+          value={`${stats.currentStreak} ${stats.currentStreak === 1 ? 'Win' : 'Wins'}`}
+          change={stats.currentStreak > 0 ? 'Keep it up!' : 'Start trading!'}
           icon={Calendar}
           positive={stats.currentStreak > 0}
         />
@@ -202,7 +205,7 @@ export function Dashboard() {
             </div>
           ) : (
             <div className="space-y-3">
-              {trades.map((trade) => (
+              {trades.slice(0, 5).map((trade) => (
                 <TradeRow key={trade.id} {...trade} />
               ))}
             </div>
