@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, BarChart3, PieChart, Activity, Calendar, DollarSign, Target } from 'lucide-react';
+import { TrendingUp, TrendingDown, BarChart3, Activity, DollarSign, Target } from 'lucide-react';
 
 interface Trade {
   id: string;

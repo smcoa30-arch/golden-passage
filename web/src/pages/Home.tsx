@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { TrendingUp, Brain, BookOpen, Target, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
+import { TrendingUp, Brain, Target, ArrowRight, Sparkles, Shield, Zap } from 'lucide-react';
 
 export function Home() {
   const navigate = useNavigate();
