@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock } from 'lucide-react';
+import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -14,7 +14,14 @@ interface Trade {
   pnl: number;
   date: string;
   strategy: string;
+  psychology?: string;
   timestamp: number;
+}
+
+interface EquityPoint {
+  date: string;
+  equity: number;
+  drawdown: number;
 }
 
 interface Stats {
@@ -27,21 +34,16 @@ interface Stats {
   avgLoss: number;
   bestTrade: number;
   worstTrade: number;
+  maxDrawdown: number;
+  maxDrawdownPercent: number;
 }
 
-interface StrategyStat {
-  name: string;
-  trades: number;
-  wins: number;
-  pnl: number;
-  winRate: number;
-}
+// ==================== PROP FIRM SETTINGS ====================
 
-interface DailyPnL {
-  date: string;
-  pnl: number;
-  trades: number;
-}
+const PROP_FIRM_LIMITS = {
+  dailyLoss: 0.04, // 4% daily loss limit
+  maxDrawdown: 0.08, // 8% max drawdown
+};
 
 // ==================== AI STRATEGIES ====================
 
@@ -76,55 +78,74 @@ const aiStrategies = [
   }
 ];
 
-// ==================== STORAGE ====================
+const STORAGE_KEY = 'trades_v2';
+const EQUITY_KEY = 'starting_equity';
 
-const loadTrades = (): Trade[] => {
-  const saved = localStorage.getItem('trades');
-  if (!saved) return [];
-  try {
-    return JSON.parse(saved);
-  } catch {
-    return [];
-  }
-};
+// ==================== COMPONENT ====================
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [stats, setStats] = useState<Stats>({
-    totalTrades: 0,
-    winRate: 0,
-    profitFactor: 0,
-    totalPnl: 0,
-    currentStreak: 0,
-    avgWin: 0,
-    avgLoss: 0,
-    bestTrade: 0,
-    worstTrade: 0
+    totalTrades: 0, winRate: 0, profitFactor: 0, totalPnl: 0,
+    currentStreak: 0, avgWin: 0, avgLoss: 0, bestTrade: 0, worstTrade: 0,
+    maxDrawdown: 0, maxDrawdownPercent: 0
   });
   const [loading, setLoading] = useState(true);
   const [selectedStrategy, setSelectedStrategy] = useState(0);
   const [timeRange, setTimeRange] = useState<'week' | 'month' | 'all'>('week');
+  const [startingEquity, setStartingEquity] = useState(10000);
+  const [showEquitySettings, setShowEquitySettings] = useState(false);
+  const [journalLocked, setJournalLocked] = useState(false);
 
   // Load trades
   useEffect(() => {
-    const loaded = loadTrades();
-    setTrades(loaded);
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      try {
+        setTrades(JSON.parse(saved));
+      } catch {
+        setTrades([]);
+      }
+    }
+    const savedEquity = localStorage.getItem(EQUITY_KEY);
+    if (savedEquity) setStartingEquity(parseFloat(savedEquity));
     setLoading(false);
   }, []);
 
   // Filter trades by time range
   const filteredTrades = useMemo(() => {
     if (timeRange === 'all') return trades;
-    
     const now = Date.now();
-    const msPerDay = 24 * 60 * 60 * 1000;
     const days = timeRange === 'week' ? 7 : 30;
-    const cutoff = now - (days * msPerDay);
-    
-    return trades.filter(t => t.timestamp > cutoff || new Date(t.date).getTime() > cutoff);
+    const cutoff = now - (days * 24 * 60 * 60 * 1000);
+    return trades.filter(t => (t.timestamp || new Date(t.date).getTime()) > cutoff);
   }, [trades, timeRange]);
+
+  // Calculate equity curve
+  const equityCurve = useMemo(() => {
+    const sorted = [...trades].sort((a, b) => 
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+    
+    let equity = startingEquity;
+    let peakEquity = startingEquity;
+    const points: EquityPoint[] = [];
+    
+    sorted.forEach(trade => {
+      equity += trade.pnl;
+      if (equity > peakEquity) peakEquity = equity;
+      const drawdown = peakEquity - equity;
+      points.push({
+        date: trade.date,
+        equity: Math.round(equity * 100) / 100,
+        drawdown: Math.round((drawdown / peakEquity) * 100 * 100) / 100
+      });
+    });
+    
+    return points;
+  }, [trades, startingEquity]);
 
   // Calculate stats
   useEffect(() => {
@@ -136,6 +157,23 @@ export function Dashboard() {
     const totalProfit = wins.reduce((sum, t) => sum + t.pnl, 0);
     const totalLoss = losses.reduce((sum, t) => sum + Math.abs(t.pnl), 0);
     
+    // Calculate max drawdown
+    let maxDD = 0;
+    let maxDDPercent = 0;
+    let currentEquity = startingEquity;
+    let peakEquity = startingEquity;
+    
+    filteredTrades.forEach(trade => {
+      currentEquity += trade.pnl;
+      if (currentEquity > peakEquity) peakEquity = currentEquity;
+      const dd = peakEquity - currentEquity;
+      const ddPercent = peakEquity > 0 ? (dd / peakEquity) * 100 : 0;
+      if (dd > maxDD) {
+        maxDD = dd;
+        maxDDPercent = ddPercent;
+      }
+    });
+
     // Calculate streak
     let streak = 0;
     let maxStreak = 0;
@@ -161,28 +199,39 @@ export function Dashboard() {
       avgWin: winCount > 0 ? totalProfit / winCount : 0,
       avgLoss: lossCount > 0 ? totalLoss / lossCount : 0,
       bestTrade: filteredTrades.length > 0 ? Math.max(...filteredTrades.map(t => t.pnl), 0) : 0,
-      worstTrade: filteredTrades.length > 0 ? Math.min(...filteredTrades.map(t => t.pnl), 0) : 0
+      worstTrade: filteredTrades.length > 0 ? Math.min(...filteredTrades.map(t => t.pnl), 0) : 0,
+      maxDrawdown: maxDD,
+      maxDrawdownPercent: maxDDPercent
     });
-  }, [filteredTrades]);
 
-  // Calculate daily P&L for chart
+    // Check prop firm limits
+    const todayTrades = trades.filter(t => {
+      const tradeDate = new Date(t.date).toDateString();
+      const today = new Date().toDateString();
+      return tradeDate === today;
+    });
+    const todayPnl = todayTrades.reduce((sum, t) => sum + t.pnl, 0);
+    const todayLossPercent = Math.abs(todayPnl) / startingEquity;
+    
+    setJournalLocked(todayLossPercent >= PROP_FIRM_LIMITS.dailyLoss || maxDDPercent >= PROP_FIRM_LIMITS.maxDrawdown * 100);
+  }, [filteredTrades, startingEquity, trades]);
+
+  // Daily P&L
   const dailyPnL = useMemo(() => {
     const grouped = filteredTrades.reduce((acc, trade) => {
       const date = trade.date;
-      if (!acc[date]) {
-        acc[date] = { date, pnl: 0, trades: 0 };
-      }
+      if (!acc[date]) acc[date] = { date, pnl: 0, trades: 0 };
       acc[date].pnl += trade.pnl;
       acc[date].trades += 1;
       return acc;
-    }, {} as Record<string, DailyPnL>);
+    }, {} as Record<string, { date: string; pnl: number; trades: number }>);
     
     return Object.values(grouped).sort((a, b) => 
       new Date(a.date).getTime() - new Date(b.date).getTime()
-    ).slice(-14); // Last 14 days
+    ).slice(-14);
   }, [filteredTrades]);
 
-  // Calculate strategy stats
+  // Strategy stats
   const strategyStats = useMemo(() => {
     const grouped = filteredTrades.reduce((acc, trade) => {
       if (!acc[trade.strategy]) {
@@ -192,9 +241,8 @@ export function Dashboard() {
       if (trade.pnl > 0) acc[trade.strategy].wins++;
       acc[trade.strategy].pnl += trade.pnl;
       return acc;
-    }, {} as Record<string, StrategyStat>);
+    }, {} as Record<string, { name: string; trades: number; wins: number; pnl: number; winRate: number }>);
     
-    // Calculate win rates
     Object.values(grouped).forEach(stat => {
       stat.winRate = stat.trades > 0 ? (stat.wins / stat.trades) * 100 : 0;
     });
@@ -202,22 +250,20 @@ export function Dashboard() {
     return Object.values(grouped).sort((a, b) => b.pnl - a.pnl);
   }, [filteredTrades]);
 
-  // Forecast (simple projection based on recent performance)
+  // Forecast
   const forecast = useMemo(() => {
     if (dailyPnL.length < 3) return null;
     const avgDaily = dailyPnL.slice(-7).reduce((sum, d) => sum + d.pnl, 0) / Math.min(dailyPnL.length, 7);
-    return {
-      weekly: avgDaily * 7,
-      monthly: avgDaily * 30
-    };
+    return { weekly: avgDaily * 7, monthly: avgDaily * 30 };
   }, [dailyPnL]);
 
-  // Recent trades (last 5)
   const recentTrades = useMemo(() => {
     return [...filteredTrades]
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
       .slice(0, 5);
   }, [filteredTrades]);
+
+  const currentEquity = startingEquity + stats.totalPnl;
 
   if (loading) {
     return (
@@ -229,6 +275,20 @@ export function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto">
+      {/* Prop Firm Alert */}
+      {journalLocked && (
+        <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl flex items-center gap-3">
+          <Lock className="text-red-400" size={24} />
+          <div>
+            <h3 className="font-semibold text-red-400">Trading Halted - Risk Limit Reached</h3>
+            <p className="text-red-300/80 text-sm">
+              You've reached the prop firm daily loss limit (4%) or max drawdown (8%). 
+              Take a break and review your strategy.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
         <div>
@@ -247,7 +307,8 @@ export function Dashboard() {
           </select>
           <button 
             onClick={() => navigate('/trades')}
-            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors"
+            disabled={journalLocked}
+            className="flex items-center gap-2 bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
           >
             <Plus size={20} />
             New Trade
@@ -255,8 +316,15 @@ export function Dashboard() {
         </div>
       </div>
 
-      {/* Main Stats Cards */}
+      {/* Main Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <StatCard 
+          title="Current Equity"
+          value={`$${currentEquity.toFixed(0)}`}
+          subtext={`Starting: $${startingEquity.toLocaleString()}`}
+          icon={DollarSign}
+          color={currentEquity >= startingEquity ? 'green' : 'red'}
+        />
         <StatCard 
           title="Win Rate"
           value={`${stats.winRate.toFixed(1)}%`}
@@ -265,33 +333,116 @@ export function Dashboard() {
           color={stats.winRate >= 50 ? 'green' : 'red'}
         />
         <StatCard 
+          title="Max Drawdown"
+          value={`-${stats.maxDrawdownPercent.toFixed(1)}%`}
+          subtext={`$${stats.maxDrawdown.toFixed(0)}`}
+          icon={TrendingDown}
+          color={stats.maxDrawdownPercent < 8 ? 'green' : 'red'}
+        />
+        <StatCard 
           title="Profit Factor"
           value={stats.profitFactor >= 999 ? '∞' : stats.profitFactor.toFixed(2)}
           subtext={stats.profitFactor >= 1.5 ? 'Excellent' : stats.profitFactor >= 1 ? 'Profitable' : 'Improvement needed'}
           icon={Activity}
           color={stats.profitFactor >= 1 ? 'green' : 'red'}
         />
-        <StatCard 
-          title="Net P&L"
-          value={`$${stats.totalPnl.toFixed(0)}`}
-          subtext={`Avg Win: $${stats.avgWin.toFixed(0)}`}
-          icon={DollarSign}
-          color={stats.totalPnl >= 0 ? 'green' : 'red'}
-        />
-        <StatCard 
-          title="Best Streak"
-          value={`${stats.currentStreak}`}
-          subtext="Consecutive wins"
-          icon={Award}
-          color="blue"
-        />
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
-        {/* Left Column: Charts & Analysis */}
+        {/* Left Column */}
         <div className="lg:col-span-2 space-y-6">
-          {/* Daily P&L Chart */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+          {/* Equity Curve */}
+          <div className="glass-card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
+                <TrendingUp className="text-green-500" size={24} />
+                Equity Curve
+              </h2>
+              <button
+                onClick={() => setShowEquitySettings(true)}
+                className="text-sm text-gray-400 hover:text-white"
+              >
+                Set Starting Equity
+              </button>
+            </div>
+            
+            {equityCurve.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No trading data available</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {/* Chart */}
+                <div className="relative h-48 bg-gray-800/50 rounded-lg p-4">
+                  <svg viewBox="0 0 100 50" className="w-full h-full" preserveAspectRatio="none">
+                    {/* Grid lines */}
+                    {[0, 25, 50, 75, 100].map(y => (
+                      <line key={y} x1="0" y1={50 - y * 0.5} x2="100" y2={50 - y * 0.5} stroke="#374151" strokeWidth="0.2" />
+                    ))}
+                    
+                    {/* Equity line */}
+                    {equityCurve.length > 1 && (() => {
+                      const minEq = Math.min(...equityCurve.map(e => e.equity), startingEquity);
+                      const maxEq = Math.max(...equityCurve.map(e => e.equity), startingEquity);
+                      const range = maxEq - minEq || 1;
+                      
+                      const points = equityCurve.map((pt, i) => {
+                        const x = (i / (equityCurve.length - 1)) * 100;
+                        const y = 50 - ((pt.equity - minEq) / range) * 50;
+                        return `${x},${y}`;
+                      }).join(' ');
+                      
+                      return (
+                        <polyline
+                          points={points}
+                          fill="none"
+                          stroke={currentEquity >= startingEquity ? "#22c55e" : "#ef4444"}
+                          strokeWidth="0.5"
+                        />
+                      );
+                    })()}
+                    
+                    {/* Starting equity line */}
+                    <line x1="0" y1="25" x2="100" y2="25" stroke="#6b7280" strokeWidth="0.2" strokeDasharray="2,2" />
+                  </svg>
+                  
+                  {/* Legend */}
+                  <div className="absolute top-2 right-2 text-xs text-gray-400">
+                    Peak: ${Math.max(...equityCurve.map(e => e.equity), startingEquity).toFixed(0)}
+                  </div>
+                </div>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-4 gap-4 text-center">
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-gray-400 text-xs">Return</p>
+                    <p className={`text-lg font-bold ${stats.totalPnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {((stats.totalPnl / startingEquity) * 100).toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-gray-400 text-xs">Max DD</p>
+                    <p className="text-lg font-bold text-red-400">
+                      -{stats.maxDrawdownPercent.toFixed(1)}%
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-gray-400 text-xs">Avg Trade</p>
+                    <p className={`text-lg font-bold ${stats.totalPnl / stats.totalTrades >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      ${stats.totalTrades > 0 ? (stats.totalPnl / stats.totalTrades).toFixed(0) : '0'}
+                    </p>
+                  </div>
+                  <div className="bg-gray-800/50 rounded-lg p-3">
+                    <p className="text-gray-400 text-xs">Trades</p>
+                    <p className="text-lg font-bold text-white">{stats.totalTrades}</p>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Daily P&L */}
+          <div className="glass-card p-6">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
               <BarChart3 className="text-blue-500" size={24} />
               Daily Performance
@@ -310,7 +461,7 @@ export function Dashboard() {
                       <div 
                         className={`h-full transition-all ${day.pnl >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
                         style={{ 
-                          width: `${Math.min(Math.abs(day.pnl) / Math.max(...dailyPnL.map(d => Math.abs(d.pnl))) * 100, 100)}%`,
+                          width: `${Math.min(Math.abs(day.pnl) / Math.max(...dailyPnL.map(d => Math.abs(d.pnl))) * 50, 50)}%`,
                           marginLeft: day.pnl >= 0 ? '50%' : `${50 - Math.min(Math.abs(day.pnl) / Math.max(...dailyPnL.map(d => Math.abs(d.pnl))) * 50, 50)}%`
                         }}
                       />
@@ -323,10 +474,9 @@ export function Dashboard() {
               </div>
             )}
 
-            {/* Forecast */}
             {forecast && (
               <div className="mt-6 p-4 bg-gray-800/50 rounded-lg">
-                <h3 className="text-sm font-medium text-gray-400 mb-2">Projected Performance (Based on recent avg)</h3>
+                <h3 className="text-sm font-medium text-gray-400 mb-2">Projected Performance</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center">
                     <p className="text-gray-400 text-sm">Next 7 Days</p>
@@ -346,7 +496,7 @@ export function Dashboard() {
           </div>
 
           {/* Strategy Performance */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+          <div className="glass-card p-6">
             <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
               <PieChart className="text-purple-500" size={24} />
               Strategy Efficiency
@@ -368,8 +518,7 @@ export function Dashboard() {
                         </span>
                       </div>
                       <div className="flex justify-between text-sm text-gray-400">
-                        <span>{stat.trades} trades</span>
-                        <span>{stat.winRate.toFixed(0)}% win rate</span>
+                        <span>{stat.trades} trades • {stat.winRate.toFixed(0)}% win</span>
                       </div>
                       <div className="w-full bg-gray-700 rounded-full h-2 mt-2">
                         <div 
@@ -383,58 +532,16 @@ export function Dashboard() {
               </div>
             )}
           </div>
-
-          {/* Recent Trades */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Clock className="text-orange-500" size={24} />
-                Recent Trades
-              </h2>
-              <button 
-                onClick={() => navigate('/trades')}
-                className="text-orange-400 hover:text-orange-300 text-sm"
-              >
-                View all →
-              </button>
-            </div>
-            
-            {recentTrades.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                <TrendingUp size={48} className="mx-auto mb-4 text-gray-600" />
-                <p>No trades yet. Start logging your trades!</p>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                {recentTrades.map(trade => (
-                  <div key={trade.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <span className="font-medium text-white">{trade.pair}</span>
-                      <span className={`text-xs px-2 py-1 rounded ${trade.type === 'Buy' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
-                        {trade.type}
-                      </span>
-                      <span className="text-gray-400 text-sm">{trade.strategy}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className={`font-semibold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
-                        {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(0)}
-                      </span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Right Column: AI Strategy & Quick Stats */}
+        {/* Right Column */}
         <div className="space-y-6">
-          {/* AI Strategy Card */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-800 border border-gray-700 rounded-xl p-6">
+          {/* AI Strategy */}
+          <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Award className="text-yellow-500" size={24} />
-                AI Strategy of the Day
+                AI Strategy
               </h2>
             </div>
             
@@ -471,97 +578,129 @@ export function Dashboard() {
           </div>
 
           {/* Quick Stats */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
+          <div className="glass-card p-6">
             <h2 className="text-lg font-semibold text-white mb-4">Trade Statistics</h2>
             <div className="space-y-3">
-              <div className="flex justify-between py-2 border-b border-gray-800">
-                <span className="text-gray-400">Total Profit</span>
-                <span className="font-semibold text-green-400">+${stats.totalPnl > 0 ? stats.totalPnl.toFixed(0) : '0'}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-gray-800">
-                <span className="text-gray-400">Total Loss</span>
-                <span className="font-semibold text-red-400">-${stats.totalPnl < 0 ? Math.abs(stats.totalPnl).toFixed(0) : '0'}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-gray-800">
-                <span className="text-gray-400">Average Win</span>
-                <span className="font-semibold text-green-400">+${stats.avgWin.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-gray-800">
-                <span className="text-gray-400">Average Loss</span>
-                <span className="font-semibold text-red-400">-${stats.avgLoss.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between py-2 border-b border-gray-800">
-                <span className="text-gray-400">Best Trade</span>
-                <span className="font-semibold text-green-400">+${stats.bestTrade.toFixed(0)}</span>
-              </div>
-              <div className="flex justify-between py-2">
-                <span className="text-gray-400">Worst Trade</span>
-                <span className="font-semibold text-red-400">${stats.worstTrade.toFixed(0)}</span>
-              </div>
+              <StatRow label="Total Profit" value={`+$${Math.max(0, stats.totalPnl).toFixed(0)}`} color="green" />
+              <StatRow label="Total Loss" value={`-$${Math.abs(Math.min(0, stats.totalPnl)).toFixed(0)}`} color="red" />
+              <StatRow label="Average Win" value={`+$${stats.avgWin.toFixed(0)}`} color="green" />
+              <StatRow label="Average Loss" value={`-$${stats.avgLoss.toFixed(0)}`} color="red" />
+              <StatRow label="Best Trade" value={`+$${stats.bestTrade.toFixed(0)}`} color="green" />
+              <StatRow label="Worst Trade" value={`$${stats.worstTrade.toFixed(0)}`} color="red" />
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-6">
-            <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
-            <div className="space-y-2">
+          {/* Recent Trades */}
+          <div className="glass-card p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Clock className="text-orange-500" size={20} />
+                Recent Trades
+              </h2>
               <button 
-                onClick={() => navigate('/journal')}
-                className="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition-colors"
+                onClick={() => navigate('/trades')}
+                className="text-orange-400 hover:text-orange-300 text-sm"
               >
-                Write Journal Entry
-              </button>
-              <button 
-                onClick={() => navigate('/analytics')}
-                className="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                View Detailed Analytics
-              </button>
-              <button 
-                onClick={() => navigate('/learning')}
-                className="w-full text-left px-4 py-3 bg-gray-800/50 hover:bg-gray-800 rounded-lg text-gray-300 hover:text-white transition-colors"
-              >
-                Study Strategies
+                View all →
               </button>
             </div>
+            
+            {recentTrades.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <p>No trades yet</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {recentTrades.map(trade => (
+                  <div key={trade.id} className="flex justify-between items-center p-3 bg-gray-800/30 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <span className="font-medium text-white">{trade.pair}</span>
+                      <span className={`text-xs px-2 py-1 rounded ${trade.type === 'Buy' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                        {trade.type}
+                      </span>
+                    </div>
+                    <span className={`font-semibold ${trade.pnl >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {trade.pnl >= 0 ? '+' : ''}${trade.pnl.toFixed(0)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Equity Settings Modal */}
+      {showEquitySettings && (
+        <div className="modal-overlay" onClick={() => setShowEquitySettings(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <h3 className="text-xl font-semibold text-white mb-4">Set Starting Equity</h3>
+              <input
+                type="number"
+                value={startingEquity}
+                onChange={e => setStartingEquity(parseFloat(e.target.value) || 0)}
+                className="input-field w-full mb-4"
+                placeholder="10000"
+              />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowEquitySettings(false)}
+                  className="flex-1 py-2 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    localStorage.setItem(EQUITY_KEY, startingEquity.toString());
+                    setShowEquitySettings(false);
+                  }}
+                  className="flex-1 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-// ==================== COMPONENTS ====================
+// ==================== SUBCOMPONENTS ====================
 
-function StatCard({ 
-  title, 
-  value, 
-  subtext, 
-  icon: Icon,
-  color
-}: { 
-  title: string; 
-  value: string; 
-  subtext: string;
-  icon: typeof TrendingUp;
-  color: 'green' | 'red' | 'blue';
+function StatCard({ title, value, subtext, icon: Icon, color }: {
+  title: string; value: string; subtext: string;
+  icon: typeof TrendingUp; color: 'green' | 'red' | 'blue';
 }) {
-  const colorClasses = {
+  const colors = {
     green: 'text-green-400 bg-green-500/10',
     red: 'text-red-400 bg-red-500/10',
     blue: 'text-blue-400 bg-blue-500/10'
   };
 
   return (
-    <div className="bg-gray-900/50 border border-gray-700 rounded-xl p-4">
+    <div className="glass-card p-4">
       <div className="flex items-center justify-between mb-2">
         <p className="text-gray-400 text-sm">{title}</p>
-        <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+        <div className={`p-2 rounded-lg ${colors[color]}`}>
           <Icon size={18} />
         </div>
       </div>
       <p className="text-2xl font-bold text-white">{value}</p>
       <p className="text-xs text-gray-500 mt-1">{subtext}</p>
+    </div>
+  );
+}
+
+function StatRow({ label, value, color }: { label: string; value: string; color: 'green' | 'red' }) {
+  return (
+    <div className="flex justify-between py-2 border-b border-gray-800 last:border-0">
+      <span className="text-gray-400">{label}</span>
+      <span className={`font-semibold ${color === 'green' ? 'text-green-400' : 'text-red-400'}`}>
+        {value}
+      </span>
     </div>
   );
 }
