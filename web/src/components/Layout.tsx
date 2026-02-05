@@ -8,7 +8,9 @@ import {
   Menu,
   X,
   LogOut,
-  User
+  User,
+  Brain,
+  Target
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -46,38 +48,53 @@ export function Layout({ children }: LayoutProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm sticky top-0 z-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white">
+      {/* Glassmorphism Header */}
+      <header className="sticky top-0 z-50 backdrop-blur-xl bg-gray-950/80 border-b border-gray-800/50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
+            <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={() => setSidebarOpen(!sidebarOpen)}
-                className="p-2 rounded-md text-gray-600 hover:text-gray-900 lg:hidden"
+                className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800/50 lg:hidden transition-colors"
               >
                 {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
               </button>
+              
+              {/* Logo */}
               <button 
                 onClick={() => navigate('/dashboard')}
-                className="ml-2 text-xl font-bold text-orange-600 hover:text-orange-700"
+                className="flex items-center gap-2 group"
               >
-                Golden Passage
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-orange-700 flex items-center justify-center shadow-lg shadow-orange-500/20 group-hover:shadow-orange-500/40 transition-shadow">
+                  <Target className="text-white" size={24} />
+                </div>
+                <div className="hidden sm:block">
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent">
+                    Golden Passage
+                  </h1>
+                  <p className="text-xs text-gray-500 -mt-1">Pro Trading Platform</p>
+                </div>
               </button>
             </div>
             
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-4">
               {user && (
-                <div className="flex items-center space-x-3">
-                  <div className="hidden md:flex items-center space-x-2 text-sm text-gray-600">
-                    <User size={16} />
-                    <span>{user.email}</span>
+                <div className="flex items-center gap-3">
+                  <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-gray-800/50 border border-gray-700/50">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+                      <User size={16} className="text-white" />
+                    </div>
+                    <div className="text-sm">
+                      <p className="text-gray-300 font-medium">{user.email?.split('@')[0]}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
                   </div>
                   <button 
                     type="button"
                     onClick={handleLogout}
-                    className="flex items-center gap-2 bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-gray-800/50 hover:bg-red-900/30 border border-gray-700/50 hover:border-red-700/50 text-gray-300 hover:text-red-400 transition-all"
                   >
                     <LogOut size={18} />
                     <span className="hidden sm:inline">Logout</span>
@@ -89,50 +106,89 @@ export function Layout({ children }: LayoutProps) {
         </div>
       </header>
 
-      <div className="flex">
-        {/* Sidebar */}
+      <div className="flex max-w-7xl mx-auto">
+        {/* Glassmorphism Sidebar */}
         <aside 
-          className={`fixed inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-200 ease-in-out
-            lg:relative lg:transform-none lg:min-h-[calc(100vh-4rem)]
-            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-            mt-16 lg:mt-0`}
+          className={`fixed lg:sticky inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 ease-in-out lg:transform-none lg:top-16 lg:h-[calc(100vh-4rem)]
+            ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}
         >
-          <nav className="p-4 space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = location.pathname === item.path;
-              return (
-                <button
-                  key={item.path}
-                  type="button"
-                  onClick={() => handleNavClick(item.path)}
-                  className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left
-                    ${isActive 
-                      ? 'bg-orange-50 text-orange-700' 
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+          <div className="h-full backdrop-blur-xl bg-gray-900/90 lg:bg-transparent border-r border-gray-800/50 p-4 overflow-y-auto">
+            {/* Navigation */}
+            <nav className="space-y-1">
+              <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Main Menu
+              </p>
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = location.pathname === item.path;
+                return (
+                  <button
+                    key={item.path}
+                    type="button"
+                    onClick={() => handleNavClick(item.path)}
+                    className={`w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all group ${
+                      isActive 
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-700 text-white shadow-lg shadow-orange-500/20' 
+                        : 'text-gray-400 hover:bg-gray-800/50 hover:text-white'
                     }`}
+                  >
+                    <Icon size={20} className={isActive ? 'text-white' : 'group-hover:text-orange-400 transition-colors'} />
+                    <span className="font-medium">{item.label}</span>
+                    {isActive && (
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white" />
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+
+            {/* Pro Features Section */}
+            <div className="mt-8">
+              <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                AI Assistant
+              </p>
+              <div className="mt-2 p-4 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="text-purple-400" size={20} />
+                  <span className="font-medium text-white">Kimi AI</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Get personalized trade analysis and strategy recommendations
+                </p>
+                <button 
+                  onClick={() => navigate('/dashboard')}
+                  className="w-full py-2 px-3 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-sm transition-colors"
                 >
-                  <Icon size={20} />
-                  <span className="font-medium">{item.label}</span>
+                  Ask AI Assistant
                 </button>
-              );
-            })}
-            
-            {/* Logout in sidebar for mobile */}
+              </div>
+            </div>
+
+            {/* Logout for mobile */}
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors text-left text-gray-600 hover:bg-gray-50 hover:text-gray-900 lg:hidden"
+              className="w-full flex items-center gap-3 px-3 py-3 mt-8 rounded-xl text-gray-400 hover:bg-red-900/20 hover:text-red-400 transition-colors lg:hidden"
             >
               <LogOut size={20} />
               <span className="font-medium">Logout</span>
             </button>
-          </nav>
+          </div>
         </aside>
 
+        {/* Overlay for mobile */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Main Content */}
-        <main className="flex-1 p-6 lg:p-8 overflow-y-auto">
-          {children}
+        <main className="flex-1 p-4 lg:p-8 min-h-[calc(100vh-4rem)]">
+          <div className="backdrop-blur-sm">
+            {children}
+          </div>
         </main>
       </div>
     </div>

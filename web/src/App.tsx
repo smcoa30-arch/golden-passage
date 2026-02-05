@@ -15,8 +15,11 @@ function App() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-xl text-orange-600">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-black">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-orange-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-400">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -36,7 +39,20 @@ function App() {
       <Route path="/learning" element={<Layout><Learning /></Layout>} />
       
       {/* 404 */}
-      <Route path="*" element={<div className="p-8 text-center"><h1>404 - Page Not Found</h1></div>} />
+      <Route path="*" element={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white">
+          <div className="text-center">
+            <h1 className="text-6xl font-bold mb-4">404</h1>
+            <p className="text-gray-400 mb-6">Page not found</p>
+            <button 
+              onClick={() => window.location.href = '/dashboard'}
+              className="bg-orange-600 text-white px-6 py-3 rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Go to Dashboard
+            </button>
+          </div>
+        </div>
+      } />
     </Routes>
   );
 }
