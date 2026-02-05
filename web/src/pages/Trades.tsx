@@ -29,6 +29,7 @@ interface AIAnalysis {
   entryZone: string;
   stopLoss: string;
   takeProfit: string;
+  marketContext?: string; // Add this for AI-searched context
 }
 
 interface Instrument {
@@ -92,126 +93,50 @@ const DRAFT_KEY = 'trade_draft';
 
 const KIMI_API_KEY = 'sk-kimi-ZYG0OqIc4MHrvFN8KLR8pUMps5q37N6Om69SzuthhZT1zNa8aWq9WJbeUkqwbwkO';
 
-// Market context cache to avoid repeated API calls
-let marketContextCache: { [key: string]: { data: any; timestamp: number } } = {};
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Analysis cache to avoid repeated API calls
+let analysisCache: { [key: string]: { data: AIAnalysis; timestamp: number } } = {};
+const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-interface MarketContext {
-  trend: string;
-  keyLevels: string[];
-  sessions: string;
-  volatility: string;
-  correlation: string;
-}
-
-async function fetchMarketContext(instrument: string): Promise<MarketContext> {
-  const cacheKey = instrument;
-  const cached = marketContextCache[cacheKey];
+async function getKimiTradeAnalysis(
+  instrument: string,
+  tradeType: string
+): Promise<AIAnalysis> {
+  
+  const cacheKey = `${instrument}_${tradeType}`;
+  const cached = analysisCache[cacheKey];
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
     return cached.data;
   }
 
-  const prompt = `As an institutional forex/CFD analyst, provide a CURRENT market context analysis for ${instrument}.
+  const systemPrompt = `You are an expert institutional trader with 20+ years experience. You have access to web search to get real-time market data.
 
-Today's Date: ${new Date().toISOString().split('T')[0]}
+Your task: Analyze ${instrument} for ${tradeType} trading using CURRENT market data you search for.
 
-Provide ONLY this structured information:
+Use web search to find:
+1. Current price and recent price action
+2. Today's trend direction and key levels
+3. Recent news affecting this instrument
+4. Economic calendar events
+5. Technical support/resistance levels
+6. DXY correlation (for forex pairs)
 
-TREND: [Current Daily/4H trend direction - Bullish/Bearish/Neutral with brief reasoning]
+Provide analysis in this EXACT format:
 
-KEY_LEVELS: [3-4 key technical levels: major support/resistance, previous day high/low, Asian range]
+MARKET_CONTEXT: [2-3 sentences summarizing current price, today's movement, and overall structure based on your search]
 
-SESSIONS: [Best trading sessions for this instrument and current session characteristics]
+FUNDAMENTAL_BIAS: [Based on searched news, economic data, and macro factors. What's driving price TODAY?]
 
-VOLATILITY: [Current volatility assessment and expected movement range]
+TECHNICAL_BIAS: [Based on current technical levels from your search. Trend, S/R, order blocks, liquidity.]
 
-CORRELATION: [Key correlations affecting this pair right now - e.g., DXY moves, commodity prices]
+THE_PLAN:
+- Entry Zone: [Specific price range]
+- Stop Loss: [Specific price - logical level]
+- Take Profit 1: [Specific price with RR]
+- Take Profit 2: [Specific price]
 
-Keep each section to 1-2 concise sentences maximum.`;
+RISK_WARNING: [Specific risks from economic calendar, news, or technical invalidation]
 
-  try {
-    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${KIMI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'kimi-latest',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.2,
-        max_tokens: 800
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`API Error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content || '';
-
-    const context: MarketContext = {
-      trend: content.match(/TREND:\s*([^\n]+)/i)?.[1]?.trim() || 'Neutral - no clear direction',
-      keyLevels: content.match(/KEY_LEVELS:\s*([^\n]+)/i)?.[1]?.split(',').map((s: string) => s.trim()) || ['Previous day high/low'],
-      sessions: content.match(/SESSIONS:\s*([^\n]+)/i)?.[1]?.trim() || 'London/NY overlap most active',
-      volatility: content.match(/VOLATILITY:\s*([^\n]+)/i)?.[1]?.trim() || 'Normal market conditions',
-      correlation: content.match(/CORRELATION:\s*([^\n]+)/i)?.[1]?.trim() || 'Standard correlations apply'
-    };
-
-    marketContextCache[cacheKey] = { data: context, timestamp: Date.now() };
-    return context;
-  } catch (error) {
-    console.error('Market context fetch error:', error);
-    return {
-      trend: 'Unable to fetch - check charts manually',
-      keyLevels: ['Previous day high/low', 'Asian range'],
-      sessions: 'London/NY overlap 8-11 AM EST',
-      volatility: 'Check ATR on your charts',
-      correlation: 'Monitor DXY for USD pairs'
-    };
-  }
-}
-
-async function getKimiTradeAnalysis(
-  instrument: string,
-  tradeType: string,
-  htfBias: string,
-  marketContext?: MarketContext
-): Promise<AIAnalysis> {
-  
-  const contextInfo = marketContext ? `
-CURRENT MARKET CONTEXT (Auto-fetched):
-- Trend: ${marketContext.trend}
-- Key Levels: ${marketContext.keyLevels.join(', ')}
-- Sessions: ${marketContext.sessions}
-- Volatility: ${marketContext.volatility}
-- Correlations: ${marketContext.correlation}
-` : '';
-
-  const prompt = `Act as a professional institutional trader with 20+ years of experience. 
-
-ANALYZE: ${instrument} for a ${tradeType} setup.
-
-${contextInfo}
-
-TRADER'S HTF BIAS: "${htfBias || 'Not specified - provide full analysis'}"
-
-Provide DETAILED, ACTIONABLE analysis in this exact format:
-
-FUNDAMENTAL_BIAS: [Analyze current macro drivers: DXY direction, central bank policies, interest rate differentials, geopolitical factors, and commodity prices if relevant. Be specific about what's driving price TODAY.]
-
-TECHNICAL_BIAS: [Analyze market structure on Daily/4H: trend direction, key S/R levels, liquidity zones, order blocks, FVGs. Identify exact price levels that matter NOW.]
-
-THE_PLAN: [Provide specific entry/stop/target logic with price levels]
-- Entry Zone: [Exact price range with reasoning]
-- Stop Loss: [Logical level based on structure/ATR - specific price]
-- Take Profit 1: [First target - specific price with RR ratio]
-- Take Profit 2: [Second target - specific price]
-
-RISK_WARNING: [Specific risks: upcoming news events (check economic calendar), technical invalidation levels, correlation risks, session timing concerns.]
-
-Be extremely specific with price levels and use professional institutional terminology.`;
+Be specific with exact price levels. Use professional terminology.`;
 
   const maxRetries = 2;
   let lastError: Error | null = null;
@@ -219,7 +144,7 @@ Be extremely specific with price levels and use professional institutional termi
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for search
 
       const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
         method: 'POST',
@@ -229,9 +154,21 @@ Be extremely specific with price levels and use professional institutional termi
         },
         body: JSON.stringify({
           model: 'kimi-latest',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.3,
-          max_tokens: 2000
+          messages: [
+            { role: 'system', content: 'You are a professional trading analyst with web search capabilities. Always use web search to get current market data before analyzing.' },
+            { role: 'user', content: systemPrompt }
+          ],
+          temperature: 0.2,
+          max_tokens: 2500,
+          tools: [
+            {
+              type: 'web_search',
+              web_search: {
+                enable: true,
+                search_mode: 'accurate'
+              }
+            }
+          ]
         }),
         signal: controller.signal
       });
@@ -239,65 +176,68 @@ Be extremely specific with price levels and use professional institutional termi
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`HTTP ${response.status}: ${errorText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
       }
 
       const data = await response.json();
       const content = data.choices[0]?.message?.content || '';
       
-      if (!content || content.length < 50) {
-        throw new Error('Empty or too short response');
+      if (!content || content.length < 100) {
+        throw new Error('Response too short or empty');
       }
       
-      // Parse the response with better fallbacks
+      // Parse the response
+      const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
       const fundamentalMatch = content.match(/FUNDAMENTAL_BIAS:\s*([^]*?)(?=TECHNICAL_BIAS:|$)/i);
       const technicalMatch = content.match(/TECHNICAL_BIAS:\s*([^]*?)(?=THE_PLAN:|$)/i);
       const planMatch = content.match(/THE_PLAN:\s*([^]*?)(?=RISK_WARNING:|$)/i);
       const riskMatch = content.match(/RISK_WARNING:\s*([^]*?)$/i);
       
-      // Try multiple patterns for extraction
-      const entryMatch = content.match(/Entry Zone:\s*([^\n]+)/i) || content.match(/Entry:\s*([^\n]+)/i);
-      const stopMatch = content.match(/Stop Loss:\s*([^\n]+)/i) || content.match(/Stop:\s*([^\n]+)/i);
-      const tpMatch = content.match(/Take Profit 1:\s*([^\n]+)/i) || content.match(/TP1:\s*([^\n]+)/i) || content.match(/Take Profit:\s*([^\n]+)/i);
+      // Extract price levels with flexible patterns
+      const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/]+)/i) || 
+                        content.match(/Entry:\s*([\d.,\s\-/]+)/i);
+      const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/]+)/i) || 
+                       content.match(/Stop:\s*([\d.,\s\-/]+)/i);
+      const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/]+)/i) || 
+                     content.match(/TP1:\s*([\d.,\s\-/]+)/i) ||
+                     content.match(/Take Profit:\s*([\d.,\s\-/]+)/i);
 
-      const result = {
-        fundamentalBias: fundamentalMatch?.[1]?.trim() || content.substring(0, 200) || 'Analysis in progress...',
-        technicalBias: technicalMatch?.[1]?.trim() || 'Check Daily/4H structure manually',
-        plan: planMatch?.[1]?.trim() || content.substring(0, 300) || 'Develop plan based on your strategy',
-        riskWarning: riskMatch?.[1]?.trim() || 'Always check economic calendar',
-        entryZone: entryMatch?.[1]?.trim() || 'Identify on your charts',
-        stopLoss: stopMatch?.[1]?.trim() || 'Below/above recent structure',
-        takeProfit: tpMatch?.[1]?.trim() || 'Next major S/R level'
+      const result: AIAnalysis = {
+        marketContext: contextMatch?.[1]?.trim(),
+        fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Search for current macro drivers',
+        technicalBias: technicalMatch?.[1]?.trim() || 'Check Daily/4H charts manually',
+        plan: planMatch?.[1]?.trim() || 'Follow your trading plan',
+        riskWarning: riskMatch?.[1]?.trim() || 'Check forexfactory.com for news',
+        entryZone: entryMatch?.[1]?.trim() || 'See technical analysis',
+        stopLoss: stopMatch?.[1]?.trim() || 'Below/above structure',
+        takeProfit: tpMatch?.[1]?.trim() || 'Next major level'
       };
 
+      // Cache the result
+      analysisCache[cacheKey] = { data: result, timestamp: Date.now() };
       return result;
+      
     } catch (error) {
       lastError = error as Error;
       console.error(`Kimi API attempt ${attempt + 1} failed:`, error);
       
       if (attempt < maxRetries) {
-        // Wait before retry with exponential backoff
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempt)));
+        await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
       }
     }
   }
 
-  // All retries failed - return helpful fallback with actual guidance
+  // All retries failed
   console.error('All Kimi API attempts failed:', lastError);
   return {
-    fundamentalBias: marketContext ? 
-      `Market Context: ${marketContext.trend}. ${marketContext.correlation}. Check forex factory for today's news.` : 
-      'Unable to fetch live analysis. Check economic calendar and DXY correlation.',
-    technicalBias: marketContext ?
-      `Key levels to watch: ${marketContext.keyLevels.join(', ')}. ${marketContext.trend}` :
-      'Mark Daily/4H structure. Look for order blocks and liquidity sweeps.',
-    plan: marketContext ?
-      `Trade Type: ${tradeType}. Wait for price to reach key levels before entering. Use 1-2% risk.` :
-      '1. Mark HTF structure 2. Wait for sweep 3. Enter on LTF confirmation 4. Risk 1-2%',
-    riskWarning: 'API connection issue. Verify setup independently. Check forexfactory.com for news.',
-    entryZone: marketContext?.keyLevels[0] || 'At key S/R with confirmation',
-    stopLoss: 'Beyond recent swing high/low',
+    marketContext: `Unable to fetch live data for ${instrument}. Using fallback analysis.`,
+    fundamentalBias: `Please check forexfactory.com for today's news on ${instrument}. Monitor DXY for USD pairs and commodity prices for XAU/USD, XAG/USD.`,
+    technicalBias: `Mark Daily and 4H support/resistance levels. Look for order blocks and fair value gaps. Wait for price to reach premium/discount zones before entering.`,
+    plan: `1. Mark HTF structure\n2. Identify order blocks and liquidity\n3. Wait for price to reach key level\n4. Enter on LTF confirmation\n5. Risk 1-2% per trade`,
+    riskWarning: 'API temporarily unavailable. Always verify setup with your own analysis before trading.',
+    entryZone: 'At key S/R with confirmation',
+    stopLoss: 'Beyond recent swing point',
     takeProfit: 'Next liquidity pool or 2:1 RR'
   };
 }
@@ -332,13 +272,10 @@ export function Trades() {
   // AI Planner state
   const [aiForm, setAiForm] = useState({
     instrument: '',
-    tradeType: 'Intraday',
-    htfBias: ''
+    tradeType: 'Intraday'
   });
   const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [marketContext, setMarketContext] = useState<MarketContext | null>(null);
-  const [contextLoading, setContextLoading] = useState(false);
 
   // Instrument search
   const [instrumentSearch, setInstrumentSearch] = useState('');
@@ -396,6 +333,7 @@ export function Trades() {
       if (e.key === 'k' || e.key === 'K') {
         if (!showModal && !showAIPlanner) {
           setShowAIPlanner(true);
+          handleInstrumentChange('');
         }
       }
       // Escape - Close modals
@@ -517,22 +455,8 @@ export function Trades() {
     setShowModal(true);
   };
 
-  const handleInstrumentChange = async (instrument: string) => {
+  const handleInstrumentChange = (instrument: string) => {
     setAiForm({ ...aiForm, instrument });
-    if (instrument) {
-      setContextLoading(true);
-      const context = await fetchMarketContext(instrument);
-      setMarketContext(context);
-      // Auto-populate HTF bias if empty
-      if (!aiForm.htfBias) {
-        setAiForm(prev => ({ 
-          ...prev, 
-          instrument,
-          htfBias: `Trend: ${context.trend}. Key levels: ${context.keyLevels.slice(0, 2).join(', ')}.` 
-        }));
-      }
-      setContextLoading(false);
-    }
   };
 
   const handleAIAnalysis = async () => {
@@ -542,18 +466,9 @@ export function Trades() {
     }
     setAiLoading(true);
     
-    // Fetch context if not already loaded
-    let context = marketContext;
-    if (!context || context.trend.includes('Unable')) {
-      context = await fetchMarketContext(aiForm.instrument);
-      setMarketContext(context);
-    }
-    
     const analysis = await getKimiTradeAnalysis(
       aiForm.instrument, 
-      aiForm.tradeType, 
-      aiForm.htfBias,
-      context
+      aiForm.tradeType
     );
     setAiAnalysis(analysis);
     setAiLoading(false);
@@ -1027,38 +942,18 @@ export function Trades() {
               {!aiAnalysis ? (
                 <>
                   <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Instrument</label>
+                    <label className="text-gray-400 text-sm mb-1 block">Select Instrument</label>
                     <select
                       value={aiForm.instrument}
-                      onChange={(e) => handleInstrumentChange(e.target.value)}
+                      onChange={(e) => setAiForm({...aiForm, instrument: e.target.value})}
                       className="select-field w-full"
                     >
-                      <option value="">Select instrument...</option>
+                      <option value="">Choose instrument...</option>
                       {instruments.map(i => (
                         <option key={i.symbol} value={i.symbol}>{i.symbol} - {i.name}</option>
                       ))}
                     </select>
-                    {contextLoading && (
-                      <p className="text-xs text-purple-400 mt-1 flex items-center gap-1">
-                        <span className="w-3 h-3 border-2 border-purple-400/30 border-t-purple-400 rounded-full animate-spin" />
-                        Fetching market context...
-                      </p>
-                    )}
                   </div>
-
-                  {/* Market Context Display */}
-                  {marketContext && !contextLoading && (
-                    <div className="bg-gray-800/50 rounded-lg p-3 border border-gray-700">
-                      <h4 className="text-xs font-semibold text-gray-400 mb-2 flex items-center gap-1">
-                        <TrendingUp size={12} /> Live Market Context
-                      </h4>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div><span className="text-gray-500">Trend:</span> <span className="text-white">{marketContext.trend}</span></div>
-                        <div><span className="text-gray-500">Vol:</span> <span className="text-white">{marketContext.volatility}</span></div>
-                        <div className="col-span-2"><span className="text-gray-500">Key Levels:</span> <span className="text-blue-400">{marketContext.keyLevels.join(', ')}</span></div>
-                      </div>
-                    </div>
-                  )}
 
                   <div>
                     <label className="text-gray-400 text-sm mb-1 block">Trade Type</label>
@@ -1079,31 +974,33 @@ export function Trades() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Your HTF Bias / Context</label>
-                    <textarea
-                      value={aiForm.htfBias}
-                      onChange={(e) => setAiForm({...aiForm, htfBias: e.target.value})}
-                      className="input-field w-full"
-                      rows={4}
-                      placeholder="Describe your higher timeframe analysis. Example: 'Daily is bullish, price just swept sell side liquidity, forming higher lows on H4...'"
-                    />
+                  <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+                    <p className="text-sm text-blue-300 flex items-center gap-2">
+                      <Brain size={16} />
+                      Kimi AI will search for current market data including:
+                    </p>
+                    <ul className="text-xs text-gray-400 mt-2 space-y-1 ml-6 list-disc">
+                      <li>Real-time price and trend analysis</li>
+                      <li>Key support/resistance levels</li>
+                      <li>Recent news and economic events</li>
+                      <li>Technical setup with entry/stop/target</li>
+                    </ul>
                   </div>
 
                   <button
                     onClick={handleAIAnalysis}
-                    disabled={aiLoading}
+                    disabled={aiLoading || !aiForm.instrument}
                     className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                   >
                     {aiLoading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Analyzing with Kimi AI...
+                        Searching market data & analyzing...
                       </>
                     ) : (
                       <>
                         <Brain size={20} />
-                        Generate Trade Plan
+                        Analyze with Kimi AI
                       </>
                     )}
                   </button>
@@ -1111,6 +1008,16 @@ export function Trades() {
               ) : (
                 <div className="space-y-4 animate-fade-in">
                   {/* Analysis Results */}
+                  {aiAnalysis.marketContext && (
+                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
+                      <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
+                        <TrendingUp size={18} />
+                        Market Context (AI-Searched)
+                      </h3>
+                      <p className="text-gray-300 text-sm">{aiAnalysis.marketContext}</p>
+                    </div>
+                  )}
+
                   <div className="bg-gray-800/50 rounded-lg p-4">
                     <h3 className="text-purple-400 font-semibold mb-2">Fundamental Bias</h3>
                     <p className="text-gray-300 text-sm">{aiAnalysis.fundamentalBias}</p>
@@ -1153,7 +1060,7 @@ export function Trades() {
                     <button
                       onClick={() => {
                         setAiAnalysis(null);
-                        setAiForm({ instrument: '', tradeType: 'Intraday', htfBias: '' });
+                        setAiForm({ instrument: '', tradeType: 'Intraday' });
                       }}
                       className="flex-1 py-2.5 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
                     >
