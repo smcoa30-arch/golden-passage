@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Plus, Filter, Trash2, Edit2 } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../config/firebase';
 import { collection, query, orderBy, onSnapshot, where, addDoc, deleteDoc, doc, updateDoc, serverTimestamp } from 'firebase/firestore';

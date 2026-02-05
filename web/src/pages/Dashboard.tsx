@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { TrendingUp, Activity, Target, Calendar, Plus, TrendingDown, DollarSign } from 'lucide-react';
+import { TrendingUp, Activity, Target, Calendar, Plus, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../config/firebase';

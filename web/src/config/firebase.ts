@@ -9,7 +9,7 @@ import {
   signInWithPopup,
   type User
 } from 'firebase/auth';
-import { getFirestore, collection, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
