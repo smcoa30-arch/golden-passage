@@ -95,7 +95,7 @@ const KIMI_API_KEY = 'sk-kimi-ZYG0OqIc4MHrvFN8KLR8pUMps5q37N6Om69SzuthhZT1zNa8aW
 
 // Analysis cache to avoid repeated API calls
 let analysisCache: { [key: string]: { data: AIAnalysis; timestamp: number } } = {};
-const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
 async function getKimiTradeAnalysis(
   instrument: string,
@@ -105,85 +105,93 @@ async function getKimiTradeAnalysis(
   const cacheKey = `${instrument}_${tradeType}`;
   const cached = analysisCache[cacheKey];
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    console.log('Returning cached analysis for', instrument);
     return cached.data;
   }
 
-  const systemPrompt = `You are an expert institutional trader with 20+ years experience. You have access to web search to get real-time market data.
+  const currentDate = new Date().toISOString().split('T')[0];
+  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
 
-Your task: Analyze ${instrument} for ${tradeType} trading using CURRENT market data you search for.
+  const prompt = `As an expert institutional trader with 20+ years experience, analyze ${instrument} for ${tradeType} trading.
 
-Use web search to find:
-1. Current price and recent price action
-2. Today's trend direction and key levels
-3. Recent news affecting this instrument
-4. Economic calendar events
-5. Technical support/resistance levels
-6. DXY correlation (for forex pairs)
+Today's Date: ${currentDate}
+Current Time (EST): ${currentTime}
 
-Provide analysis in this EXACT format:
+Provide a comprehensive trading analysis in this EXACT format:
 
-MARKET_CONTEXT: [2-3 sentences summarizing current price, today's movement, and overall structure based on your search]
+MARKET_CONTEXT: Current price action, today's trend, key levels to watch, and overall market structure for ${instrument}.
 
-FUNDAMENTAL_BIAS: [Based on searched news, economic data, and macro factors. What's driving price TODAY?]
+FUNDAMENTAL_BIAS: Analyze DXY direction, interest rate outlook, central bank policies, geopolitical factors, and commodity correlations affecting ${instrument} TODAY.
 
-TECHNICAL_BIAS: [Based on current technical levels from your search. Trend, S/R, order blocks, liquidity.]
+TECHNICAL_BIAS: Analyze Daily/4H trend, support/resistance levels, liquidity zones, order blocks, and fair value gaps for ${instrument}.
 
 THE_PLAN:
-- Entry Zone: [Specific price range]
-- Stop Loss: [Specific price - logical level]
-- Take Profit 1: [Specific price with RR]
-- Take Profit 2: [Specific price]
+- Entry Zone: Specific price range for entry
+- Stop Loss: Logical stop level based on structure
+- Take Profit 1: First target with minimum 1:1.5 RR
+- Take Profit 2: Second target at next major level
 
-RISK_WARNING: [Specific risks from economic calendar, news, or technical invalidation]
+RISK_WARNING: Upcoming economic events, news risks, or technical invalidation levels to watch.
 
-Be specific with exact price levels. Use professional terminology.`;
+Be specific with exact price levels. Use professional institutional terminology.`;
 
-  const maxRetries = 2;
+  const maxRetries = 3;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {
+      console.log(`Kimi API attempt ${attempt + 1} for ${instrument}...`);
+      
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout for search
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
+      const requestBody = {
+        model: 'kimi-latest',
+        messages: [
+          { 
+            role: 'system', 
+            content: 'You are a professional institutional trading analyst. Provide detailed, actionable trade analysis with specific price levels.' 
+          },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3,
+        max_tokens: 2000
+      };
+
+      console.log('Sending request to Kimi API...');
+      
       const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${KIMI_API_KEY}`
         },
-        body: JSON.stringify({
-          model: 'kimi-latest',
-          messages: [
-            { role: 'system', content: 'You are a professional trading analyst with web search capabilities. Always use web search to get current market data before analyzing.' },
-            { role: 'user', content: systemPrompt }
-          ],
-          temperature: 0.2,
-          max_tokens: 2500,
-          tools: [
-            {
-              type: 'web_search',
-              web_search: {
-                enable: true,
-                search_mode: 'accurate'
-              }
-            }
-          ]
-        }),
+        body: JSON.stringify(requestBody),
         signal: controller.signal
       });
 
       clearTimeout(timeoutId);
 
+      console.log('Kimi API response status:', response.status);
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP ${response.status}: ${errorData.error?.message || response.statusText}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage += `: ${errorData.error?.message || errorData.message || response.statusText}`;
+          console.error('Kimi API error response:', errorData);
+        } catch {
+          errorMessage += `: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      const content = data.choices[0]?.message?.content || '';
+      console.log('Kimi API response received:', data.choices ? 'Success' : 'No choices');
       
-      if (!content || content.length < 100) {
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      if (!content || content.length < 50) {
         throw new Error('Response too short or empty');
       }
       
@@ -194,28 +202,29 @@ Be specific with exact price levels. Use professional terminology.`;
       const planMatch = content.match(/THE_PLAN:\s*([^]*?)(?=RISK_WARNING:|$)/i);
       const riskMatch = content.match(/RISK_WARNING:\s*([^]*?)$/i);
       
-      // Extract price levels with flexible patterns
-      const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/]+)/i) || 
-                        content.match(/Entry:\s*([\d.,\s\-/]+)/i);
-      const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/]+)/i) || 
-                       content.match(/Stop:\s*([\d.,\s\-/]+)/i);
-      const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/]+)/i) || 
-                     content.match(/TP1:\s*([\d.,\s\-/]+)/i) ||
-                     content.match(/Take Profit:\s*([\d.,\s\-/]+)/i);
+      // Extract price levels
+      const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/~]+)/i) || 
+                        content.match(/Entry:\s*([\d.,\s\-/~]+)/i);
+      const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/~]+)/i) || 
+                       content.match(/Stop:\s*([\d.,\s\-/~]+)/i);
+      const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/~]+)/i) || 
+                     content.match(/TP1:\s*([\d.,\s\-/~]+)/i) ||
+                     content.match(/Take Profit:\s*([\d.,\s\-/~]+)/i);
 
       const result: AIAnalysis = {
-        marketContext: contextMatch?.[1]?.trim(),
-        fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Search for current macro drivers',
-        technicalBias: technicalMatch?.[1]?.trim() || 'Check Daily/4H charts manually',
-        plan: planMatch?.[1]?.trim() || 'Follow your trading plan',
-        riskWarning: riskMatch?.[1]?.trim() || 'Check forexfactory.com for news',
-        entryZone: entryMatch?.[1]?.trim() || 'See technical analysis',
+        marketContext: contextMatch?.[1]?.trim() || `${instrument} analysis for ${tradeType} trading`,
+        fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Analyze DXY and macro factors',
+        technicalBias: technicalMatch?.[1]?.trim() || 'Check Daily/4H structure manually',
+        plan: planMatch?.[1]?.trim() || 'Follow your trading plan with proper risk management',
+        riskWarning: riskMatch?.[1]?.trim() || 'Always check economic calendar before trading',
+        entryZone: entryMatch?.[1]?.trim() || 'Identify on charts',
         stopLoss: stopMatch?.[1]?.trim() || 'Below/above structure',
-        takeProfit: tpMatch?.[1]?.trim() || 'Next major level'
+        takeProfit: tpMatch?.[1]?.trim() || 'Next major S/R level'
       };
 
       // Cache the result
       analysisCache[cacheKey] = { data: result, timestamp: Date.now() };
+      console.log('Analysis cached for', instrument);
       return result;
       
     } catch (error) {
@@ -223,21 +232,24 @@ Be specific with exact price levels. Use professional terminology.`;
       console.error(`Kimi API attempt ${attempt + 1} failed:`, error);
       
       if (attempt < maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 2000 * Math.pow(2, attempt)));
+        const delay = 1500 * Math.pow(2, attempt);
+        console.log(`Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
   }
 
-  // All retries failed
+  // All retries failed - return fallback
   console.error('All Kimi API attempts failed:', lastError);
+  
   return {
-    marketContext: `Unable to fetch live data for ${instrument}. Using fallback analysis.`,
-    fundamentalBias: `Please check forexfactory.com for today's news on ${instrument}. Monitor DXY for USD pairs and commodity prices for XAU/USD, XAG/USD.`,
-    technicalBias: `Mark Daily and 4H support/resistance levels. Look for order blocks and fair value gaps. Wait for price to reach premium/discount zones before entering.`,
-    plan: `1. Mark HTF structure\n2. Identify order blocks and liquidity\n3. Wait for price to reach key level\n4. Enter on LTF confirmation\n5. Risk 1-2% per trade`,
-    riskWarning: 'API temporarily unavailable. Always verify setup with your own analysis before trading.',
-    entryZone: 'At key S/R with confirmation',
-    stopLoss: 'Beyond recent swing point',
+    marketContext: `${instrument} | ${tradeType} | ${currentDate} ${currentTime} EST`,
+    fundamentalBias: `Unable to fetch live fundamental data. For ${instrument}: Check DXY direction on TradingView, review today's economic calendar on ForexFactory, and monitor any geopolitical news affecting the currencies/commodities involved.`,
+    technicalBias: `Unable to fetch live technical data. Manually mark: 1) Previous day high/low 2) Asian range 3) Key order blocks on H4 4) Fair value gaps 5) Current trend direction on Daily/4H timeframe.`,
+    plan: `GENERAL ${tradeType.toUpperCase()} APPROACH for ${instrument}:\n1. Wait for price to reach premium/discount zone\n2. Look for liquidity sweep\n3. Enter on MSS with LTF confirmation\n4. Risk 1-2% per trade`,
+    riskWarning: `API Error: ${lastError?.message || 'Connection failed'}. Always verify all analysis with your own charts before trading. Check forexfactory.com for high-impact news.`,
+    entryZone: 'Mark on chart at key S/R',
+    stopLoss: 'Beyond recent swing high/low',
     takeProfit: 'Next liquidity pool or 2:1 RR'
   };
 }
