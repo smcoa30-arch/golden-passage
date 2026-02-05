@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Search, Plus, Trash2, Edit2, X, ChevronDown, Brain, AlertTriangle, Download, Smile, Frown, Meh, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -174,7 +174,7 @@ Be specific, technical, and actionable. Use professional institutional terminolo
 // ==================== COMPONENT ====================
 
 export function Trades() {
-  const { user } = useAuth();
+  useAuth(); // Authentication check
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);

@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock, TrendingDown, AlertTriangle, Lock } from 'lucide-react';
+import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock, TrendingDown, Lock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
