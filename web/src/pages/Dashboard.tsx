@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { TrendingUp, Activity, Target, Calendar, Plus, DollarSign, PieChart, BarChart3, TrendingDown, Award, Clock } from 'lucide-react';
+import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -303,7 +303,7 @@ export function Dashboard() {
               </div>
             ) : (
               <div className="space-y-2">
-                {dailyPnL.map((day, idx) => (
+                {dailyPnL.map((day) => (
                   <div key={day.date} className="flex items-center gap-3">
                     <span className="text-gray-400 text-sm w-20">{day.date.slice(5)}</span>
                     <div className="flex-1 h-8 bg-gray-800 rounded-lg overflow-hidden relative">

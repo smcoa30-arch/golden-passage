@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BookOpen, Video, TrendingUp, Calculator, Play, ChevronDown, ChevronUp, Brain, Target, BarChart3 } from 'lucide-react';
+import { BookOpen, Video, TrendingUp, Calculator, ChevronDown, ChevronUp, Brain, Target, BarChart3 } from 'lucide-react';
 
 // ==================== LEARNING MODULES DATA ====================
 

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { CheckCircle, Circle, Plus, Trash2, Edit2, Save, X, Calendar, TrendingUp, Brain, Target, AlertTriangle, CheckSquare, BarChart3, Clock } from 'lucide-react';
+import { CheckCircle, Circle, Plus, Trash2, Edit2, Save, X, Calendar, Brain, Target, AlertTriangle, CheckSquare } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 // ==================== TYPES ====================
@@ -92,7 +92,7 @@ const STORAGE_KEYS = {
 };
 
 export function Journal() {
-  const { user } = useAuth();
+  useAuth(); // Authentication context
   
   // Tab state
   const [activeTab, setActiveTab] = useState<TimeframeTab>('daily');
