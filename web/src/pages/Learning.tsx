@@ -15,24 +15,26 @@ const learningModules = [
         title: 'Market Structure Fundamentals',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/JzrO5wU9nG8',
-        content: `
-## Higher Highs, Higher Lows, Lower Highs, Lower Lows
-
-Understanding market structure is the foundation of price action trading.
-
-### Bullish Structure (HH, HL)
-- **Higher High (HH)**: Price creates a new peak above the previous high
-- **Higher Low (HL)**: Price retraces but holds above the previous low
-- **Significance**: Indicates buying pressure and uptrend continuation
-
-### Bearish Structure (LH, LL)
-- **Lower High (LH)**: Price fails to break above the previous high
-- **Lower Low (LL)**: Price breaks below the previous low
-- **Significance**: Indicates selling pressure and downtrend continuation
-
-### The "Flip Zone" Concept
-The flip zone is where previous resistance becomes support (or vice versa). This is your highest-probability entry area.
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">Higher Highs, Higher Lows, Lower Highs, Lower Lows</h3>
+            <p className="mb-3">Understanding market structure is the foundation of price action trading.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Bullish Structure (HH, HL)</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Higher High (HH)</strong>: Price creates a new peak above the previous high</li>
+              <li className="ml-4"><strong className="text-white">Higher Low (HL)</strong>: Price retraces but holds above the previous low</li>
+              <li className="ml-4"><strong className="text-white">Significance</strong>: Indicates buying pressure and uptrend continuation</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Bearish Structure (LH, LL)</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Lower High (LH)</strong>: Price fails to break above the previous high</li>
+              <li className="ml-4"><strong className="text-white">Lower Low (LL)</strong>: Price breaks below the previous low</li>
+              <li className="ml-4"><strong className="text-white">Significance</strong>: Indicates selling pressure and downtrend continuation</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The &quot;Flip Zone&quot; Concept</h4>
+            <p className="mb-3">The flip zone is where previous resistance becomes support (or vice versa). This is your highest-probability entry area.</p>
+          </>
+        ),
         strategy: {
           name: 'Structure Break & Retest',
           winRate: '68%',
@@ -51,34 +53,38 @@ The flip zone is where previous resistance becomes support (or vice versa). This
         title: 'Candlestick Psychology',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/FhGRr2Gt0uw',
-        content: `
-## Reading the Story of Price
-
-Every candlestick tells a story about buyer and seller psychology.
-
-### High-Probability Patterns
-
-**Pin Bar (Reversal Signal)**
-- Long wick rejecting a key level
-- Small body at one extreme
-- Indicates strong rejection and potential reversal
-
-**Engulfing Patterns**
-- Bullish: Green candle completely engulfs previous red candle
-- Bearish: Red candle completely engulfs previous green candle
-- Shows momentum shift
-
-**Inside Bar**
-- Candle completely inside the range of previous candle
-- Indicates consolidation before explosive move
-- Best traded at key support/resistance
-
-### The Narrative Approach
-Don't just see candles—read the battle:
-- Who's in control? (wick direction, body size)
-- Where did price get rejected? (wick tips)
-- Is momentum building or fading? (candle progression)
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">Reading the Story of Price</h3>
+            <p className="mb-3">Every candlestick tells a story about buyer and seller psychology.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">High-Probability Patterns</h4>
+            <p className="mb-3"><strong className="text-white">Pin Bar (Reversal Signal)</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Long wick rejecting a key level</li>
+              <li className="ml-4">Small body at one extreme</li>
+              <li className="ml-4">Indicates strong rejection and potential reversal</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">Engulfing Patterns</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Bullish: Green candle completely engulfs previous red candle</li>
+              <li className="ml-4">Bearish: Red candle completely engulfs previous green candle</li>
+              <li className="ml-4">Shows momentum shift</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">Inside Bar</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Candle completely inside the range of previous candle</li>
+              <li className="ml-4">Indicates consolidation before explosive move</li>
+              <li className="ml-4">Best traded at key support/resistance</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The Narrative Approach</h4>
+            <p className="mb-3">Don&apos;t just see candles—read the battle:</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Who&apos;s in control? (wick direction, body size)</li>
+              <li className="ml-4">Where did price get rejected? (wick tips)</li>
+              <li className="ml-4">Is momentum building or fading? (candle progression)</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Pin Bar Reversal',
           winRate: '72%',
@@ -97,31 +103,36 @@ Don't just see candles—read the battle:
         title: 'Premium vs Discount Concepts',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/UWrvexqN3w8',
-        content: `
-## Institutional Order Flow
-
-Institutions don't chase price—they buy at discount and sell at premium.
-
-### Fibonacci Premium/Discount Zones
-- **Premium Zone (60-100%)**: Institutional selling area
-- **Equilibrium (40-60%)**: Avoid—chop zone
-- **Discount Zone (0-40%)**: Institutional buying area
-
-### Premium/Discount within Structure
-In an uptrend:
-- **Premium**: Near the highs (sell zone)
-- **Discount**: Near the flip zone (buy zone)
-
-In a downtrend:
-- **Premium**: Near the flip zone (sell zone)
-- **Discount**: Near the lows (buy zone)
-
-### Practical Application
-1. Mark your structure (HH/HL or LH/LL)
-2. Identify premium and discount zones
-3. Only buy in discount, only sell in premium
-4. This filters out 60% of losing trades
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">Institutional Order Flow</h3>
+            <p className="mb-3">Institutions don&apos;t chase price—they buy at discount and sell at premium.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Fibonacci Premium/Discount Zones</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Premium Zone (60-100%)</strong>: Institutional selling area</li>
+              <li className="ml-4"><strong className="text-white">Equilibrium (40-60%)</strong>: Avoid—chop zone</li>
+              <li className="ml-4"><strong className="text-white">Discount Zone (0-40%)</strong>: Institutional buying area</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Premium/Discount within Structure</h4>
+            <p className="mb-3">In an uptrend:</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Premium</strong>: Near the highs (sell zone)</li>
+              <li className="ml-4"><strong className="text-white">Discount</strong>: Near the flip zone (buy zone)</li>
+            </ul>
+            <p className="mb-3">In a downtrend:</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Premium</strong>: Near the flip zone (sell zone)</li>
+              <li className="ml-4"><strong className="text-white">Discount</strong>: Near the lows (buy zone)</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Practical Application</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Mark your structure (HH/HL or LH/LL)</li>
+              <li className="ml-4">2. Identify premium and discount zones</li>
+              <li className="ml-4">3. Only buy in discount, only sell in premium</li>
+              <li className="ml-4">4. This filters out 60% of losing trades</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Premium/Discount Entries',
           winRate: '65%',
@@ -148,34 +159,38 @@ In a downtrend:
       {
         title: 'Order Blocks & Mitigation',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/WmFD6lkGMVU',
-        content: `
-## The Building Blocks of Institutional Order Flow
-
-Order Blocks are the last opposing candle before a strong move—where institutions positioned.
-
-### Identifying Valid Order Blocks
-
-**Bullish Order Block**
-- Last bearish candle before aggressive bullish move
-- Creates the "origin" of an uptrend
-- Becomes support for future retracements
-
-**Bearish Order Block**
-- Last bullish candle before aggressive bearish move
-- Creates the "origin" of a downtrend
-- Becomes resistance for future retracements
-
-### Mitigation Concept
-Mitigation means price returning to an order block to "fill" remaining orders.
-- Price moves away from OB → creates FVG
-- Price returns to OB → mitigation
-- Entry trigger: Rejection from OB with LTF confirmation
-
-### Unmitigated vs Mitigated
-- **Unmitigated**: Price hasn't returned—high probability future target
-- **Mitigated**: Price has returned—OB is "used up"
-        `,
+        videoUrl: 'https://www.youtube.com/embed/4Tuk0Yztz3s',
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">The Building Blocks of Institutional Order Flow</h3>
+            <p className="mb-3">Order Blocks are the last opposing candle before a strong move—where institutions positioned.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Identifying Valid Order Blocks</h4>
+            <p className="mb-3"><strong className="text-white">Bullish Order Block</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Last bearish candle before aggressive bullish move</li>
+              <li className="ml-4">Creates the &quot;origin&quot; of an uptrend</li>
+              <li className="ml-4">Becomes support for future retracements</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">Bearish Order Block</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Last bullish candle before aggressive bearish move</li>
+              <li className="ml-4">Creates the &quot;origin&quot; of a downtrend</li>
+              <li className="ml-4">Becomes resistance for future retracements</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Mitigation Concept</h4>
+            <p className="mb-3">Mitigation means price returning to an order block to &quot;fill&quot; remaining orders.</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Price moves away from OB → creates FVG</li>
+              <li className="ml-4">Price returns to OB → mitigation</li>
+              <li className="ml-4">Entry trigger: Rejection from OB with LTF confirmation</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Unmitigated vs Mitigated</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Unmitigated</strong>: Price hasn&apos;t returned—high probability future target</li>
+              <li className="ml-4"><strong className="text-white">Mitigated</strong>: Price has returned—OB is &quot;used up&quot;</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'OB Mitigation Entry',
           winRate: '71%',
@@ -194,27 +209,33 @@ Mitigation means price returning to an order block to "fill" remaining orders.
         title: 'Break of Structure (BOS) vs Change of Character (CHoCH)',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/FE1bgD9N6DM',
-        content: `
-## Reading Institutional Intent
-
-### Break of Structure (BOS)
-Continuation signal—confirms trend is continuing.
-- **Bullish BOS**: Price breaks above previous high in uptrend
-- **Bearish BOS**: Price breaks below previous low in downtrend
-
-### Change of Character (CHoCH)
-Reversal signal—indicates potential trend change.
-- **Bullish CHoCH**: Price breaks above previous high in downtrend
-- **Bearish CHoCH**: Price breaks below previous low in uptrend
-
-### The Significance
-- **BOS**: Add to positions, trail stops
-- **CHoCH**: Close opposing positions, look for reversal entries
-
-### Volume and Speed Matter
-- Aggressive break = institutional participation
-- Slow, grinding break = weak, likely to fail
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">Reading Institutional Intent</h3>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Break of Structure (BOS)</h4>
+            <p className="mb-3">Continuation signal—confirms trend is continuing.</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Bullish BOS</strong>: Price breaks above previous high in uptrend</li>
+              <li className="ml-4"><strong className="text-white">Bearish BOS</strong>: Price breaks below previous low in downtrend</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Change of Character (CHoCH)</h4>
+            <p className="mb-3">Reversal signal—indicates potential trend change.</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Bullish CHoCH</strong>: Price breaks above previous high in downtrend</li>
+              <li className="ml-4"><strong className="text-white">Bearish CHoCH</strong>: Price breaks below previous low in uptrend</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The Significance</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">BOS</strong>: Add to positions, trail stops</li>
+              <li className="ml-4"><strong className="text-white">CHoCH</strong>: Close opposing positions, look for reversal entries</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Volume and Speed Matter</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Aggressive break = institutional participation</li>
+              <li className="ml-4">Slow, grinding break = weak, likely to fail</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'CHoCH Reversal',
           winRate: '66%',
@@ -233,35 +254,39 @@ Reversal signal—indicates potential trend change.
         title: 'Liquidity Sweeps & Inducement',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/6oTABCDoSVc',
-        content: `
-## Understanding Stop Hunts
-
-Institutions need liquidity to fill large orders—they sweep retail stops.
-
-### Types of Liquidity
-
-**Buy Side Liquidity (BSL)**
-- Equal highs, swing highs, previous day high
-- Where retail traders place stop losses for shorts
-- Institutions buy these stops to fill sell orders
-
-**Sell Side Liquidity (SSL)**
-- Equal lows, swing lows, previous day low
-- Where retail traders place stop losses for longs
-- Institutions sell these stops to fill buy orders
-
-### The Inducement Pattern
-1. Price approaches liquidity level
-2. Retail traders pile in (retail follows retail)
-3. Institutions sweep the liquidity (stop hunt)
-4. Price reverses sharply with momentum
-
-### Trading Liquidity Sweeps
-1. Mark obvious liquidity levels (equal highs/lows)
-2. Wait for sweep with momentum candle
-3. Enter on confirmation (engulfing, pin bar)
-4. Target the opposite liquidity pool
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">Understanding Stop Hunts</h3>
+            <p className="mb-3">Institutions need liquidity to fill large orders—they sweep retail stops.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Types of Liquidity</h4>
+            <p className="mb-3"><strong className="text-white">Buy Side Liquidity (BSL)</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Equal highs, swing highs, previous day high</li>
+              <li className="ml-4">Where retail traders place stop losses for shorts</li>
+              <li className="ml-4">Institutions buy these stops to fill sell orders</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">Sell Side Liquidity (SSL)</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Equal lows, swing lows, previous day low</li>
+              <li className="ml-4">Where retail traders place stop losses for longs</li>
+              <li className="ml-4">Institutions sell these stops to fill buy orders</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The Inducement Pattern</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Price approaches liquidity level</li>
+              <li className="ml-4">2. Retail traders pile in (retail follows retail)</li>
+              <li className="ml-4">3. Institutions sweep the liquidity (stop hunt)</li>
+              <li className="ml-4">4. Price reverses sharply with momentum</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Trading Liquidity Sweeps</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Mark obvious liquidity levels (equal highs/lows)</li>
+              <li className="ml-4">2. Wait for sweep with momentum candle</li>
+              <li className="ml-4">3. Enter on confirmation (engulfing, pin bar)</li>
+              <li className="ml-4">4. Target the opposite liquidity pool</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Liquidity Sweep Reversal',
           winRate: '74%',
@@ -289,35 +314,39 @@ Institutions need liquidity to fill large orders—they sweep retail stops.
         title: 'Fair Value Gaps (FVG)',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/ahpjvyO6-lE',
-        content: `
-## The Imbalance Edge
-
-FVGs are price inefficiencies created by aggressive institutional moves.
-
-### Identifying FVGs
-
-**Bullish FVG**
-- Current candle low > Previous candle high
-- Gap between candles = bullish imbalance
-- Institutions aggressively bought—expect return to fill
-
-**Bearish FVG**
-- Current candle high < Previous candle high
-- Gap between candles = bearish imbalance
-- Institutions aggressively sold—expect return to fill
-
-### FVG as Entry Tool
-1. Price creates FVG on LTF (1m-5m)
-2. FVG aligns with HTF structure (15m-1H)
-3. Price returns to fill FVG
-4. Enter at 50% of FVG with LTF confirmation
-
-### FVG Confluence
-Best entries when FVG aligns with:
-- Order Block
-- Breaker Block
-- Optimal Trade Entry (OTE) level
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">The Imbalance Edge</h3>
+            <p className="mb-3">FVGs are price inefficiencies created by aggressive institutional moves.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Identifying FVGs</h4>
+            <p className="mb-3"><strong className="text-white">Bullish FVG</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Current candle low &gt; Previous candle high</li>
+              <li className="ml-4">Gap between candles = bullish imbalance</li>
+              <li className="ml-4">Institutions aggressively bought—expect return to fill</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">Bearish FVG</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Current candle high &lt; Previous candle high</li>
+              <li className="ml-4">Gap between candles = bearish imbalance</li>
+              <li className="ml-4">Institutions aggressively sold—expect return to fill</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">FVG as Entry Tool</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Price creates FVG on LTF (1m-5m)</li>
+              <li className="ml-4">2. FVG aligns with HTF structure (15m-1H)</li>
+              <li className="ml-4">3. Price returns to fill FVG</li>
+              <li className="ml-4">4. Enter at 50% of FVG with LTF confirmation</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">FVG Confluence</h4>
+            <p className="mb-3">Best entries when FVG aligns with:</p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Order Block</li>
+              <li className="ml-4">Breaker Block</li>
+              <li className="ml-4">Optimal Trade Entry (OTE) level</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'FVG Entry Model',
           winRate: '69%',
@@ -336,35 +365,39 @@ Best entries when FVG aligns with:
         title: 'Silver Bullet Time Windows',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/0LvtR007Plc',
-        content: `
-## The 1-Hour High-Probability Windows
-
-ICT discovered specific times when algorithms execute orders.
-
-### Daily Silver Bullets (EST)
-
-**AM Session: 10:00 AM - 11:00 AM**
-- Post-London open volatility
-- NY session establishing direction
-- High-volume institutional activity
-
-**PM Session: 2:00 PM - 3:00 PM**
-- Pre-close positioning
-- Afternoon algorithmic sweep
-- Often reverses morning move
-
-### The Model (2022)
-1. Mark previous day's high/low (liquidity)
-2. Wait for sweep of one side during silver bullet
-3. Look for Market Structure Shift (MSS)
-4. Enter at FVG or breaker block
-5. Target opposite liquidity pool
-
-### Why It Works
-- Algorithms execute during these windows
-- Higher probability of institutional participation
-- Liquidity is actively hunted
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">The 1-Hour High-Probability Windows</h3>
+            <p className="mb-3">ICT discovered specific times when algorithms execute orders.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Daily Silver Bullets (EST)</h4>
+            <p className="mb-3"><strong className="text-white">AM Session: 10:00 AM - 11:00 AM</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Post-London open volatility</li>
+              <li className="ml-4">NY session establishing direction</li>
+              <li className="ml-4">High-volume institutional activity</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">PM Session: 2:00 PM - 3:00 PM</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Pre-close positioning</li>
+              <li className="ml-4">Afternoon algorithmic sweep</li>
+              <li className="ml-4">Often reverses morning move</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The Model (2022)</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Mark previous day&apos;s high/low (liquidity)</li>
+              <li className="ml-4">2. Wait for sweep of one side during silver bullet</li>
+              <li className="ml-4">3. Look for Market Structure Shift (MSS)</li>
+              <li className="ml-4">4. Enter at FVG or breaker block</li>
+              <li className="ml-4">5. Target opposite liquidity pool</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Why It Works</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Algorithms execute during these windows</li>
+              <li className="ml-4">Higher probability of institutional participation</li>
+              <li className="ml-4">Liquidity is actively hunted</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Silver Bullet Entry',
           winRate: '76%',
@@ -383,35 +416,40 @@ ICT discovered specific times when algorithms execute orders.
         title: 'Power of 3: Accumulation, Manipulation, Distribution',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/Oe8IOKO9jAg',
-        content: `
-## The Institutional Cycle
-
-All markets follow this 3-phase cycle—understand it to avoid being manipulated.
-
-### Phase 1: Accumulation
-- Institutions building positions
-- Price chops in a range
-- Low volatility, "boring" price action
-- Retail traders get frustrated and exit
-
-### Phase 2: Manipulation
-- Stop hunt in opposite direction
-- Sweeps liquidity
-- Creates false breakout
-- Retail traders chase and get trapped
-
-### Phase 3: Distribution
-- True move in intended direction
-- High momentum
-- Institutions distributing to retail
-- Trend develops
-
-### Trading the Power of 3
-1. Identify accumulation range (Asia session often)
-2. Anticipate manipulation (sweep)
-3. Enter on distribution (true move)
-4. Never trade during accumulation—wait for sweep
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">The Institutional Cycle</h3>
+            <p className="mb-3">All markets follow this 3-phase cycle—understand it to avoid being manipulated.</p>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Phase 1: Accumulation</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Institutions building positions</li>
+              <li className="ml-4">Price chops in a range</li>
+              <li className="ml-4">Low volatility, &quot;boring&quot; price action</li>
+              <li className="ml-4">Retail traders get frustrated and exit</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Phase 2: Manipulation</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Stop hunt in opposite direction</li>
+              <li className="ml-4">Sweeps liquidity</li>
+              <li className="ml-4">Creates false breakout</li>
+              <li className="ml-4">Retail traders chase and get trapped</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Phase 3: Distribution</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">True move in intended direction</li>
+              <li className="ml-4">High momentum</li>
+              <li className="ml-4">Institutions distributing to retail</li>
+              <li className="ml-4">Trend develops</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Trading the Power of 3</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. Identify accumulation range (Asia session often)</li>
+              <li className="ml-4">2. Anticipate manipulation (sweep)</li>
+              <li className="ml-4">3. Enter on distribution (true move)</li>
+              <li className="ml-4">4. Never trade during accumulation—wait for sweep</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Power of 3 Setup',
           winRate: '68%',
@@ -430,37 +468,44 @@ All markets follow this 3-phase cycle—understand it to avoid being manipulated
         title: 'ICT 2022 Mentorship Model',
         type: 'video',
         videoUrl: 'https://www.youtube.com/embed/h8ZFeBWxhgY',
-        content: `
-## The Complete ICT Entry Framework
-
-### Pre-Trade Analysis
-1. **Mark Key Levels**
-   - Previous day high/low
-   - Previous week high/low
-   - Asian range high/low
-
-2. **Identify Bias**
-   - HTF structure (H4/Daily)
-   - Current in premium or discount?
-   - Where is the draw?
-
-### The Entry Checklist
-1. ✓ Liquidity sweep (inducement)
-2. ✓ Market Structure Shift (confirmation)
-3. ✓ Fair Value Gap or Order Block (entry)
-4. ✓ Alignment with HTF bias
-5. ✓ Risk:Reward minimum 1:2
-
-### Time-Based Execution
-- **Killzones**: High probability windows
-- **Midnight Open**: Often sets the day's tone
-- **New York Open**: Most volatile—best for entries
-
-### Risk Management
-- Never risk more than 1-2% per trade
-- Maximum 3 trades per day
-- Stop trading after 2 consecutive losses
-        `,
+        content: (
+          <>
+            <h3 className="text-xl font-bold text-white mb-3">The Complete ICT Entry Framework</h3>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Pre-Trade Analysis</h4>
+            <p className="mb-3"><strong className="text-white">1. Mark Key Levels</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Previous day high/low</li>
+              <li className="ml-4">Previous week high/low</li>
+              <li className="ml-4">Asian range high/low</li>
+            </ul>
+            <p className="mb-3"><strong className="text-white">2. Identify Bias</strong></p>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">HTF structure (H4/Daily)</li>
+              <li className="ml-4">Current in premium or discount?</li>
+              <li className="ml-4">Where is the draw?</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">The Entry Checklist</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">1. ✓ Liquidity sweep (inducement)</li>
+              <li className="ml-4">2. ✓ Market Structure Shift (confirmation)</li>
+              <li className="ml-4">3. ✓ Fair Value Gap or Order Block (entry)</li>
+              <li className="ml-4">4. ✓ Alignment with HTF bias</li>
+              <li className="ml-4">5. ✓ Risk:Reward minimum 1:2</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Time-Based Execution</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4"><strong className="text-white">Killzones</strong>: High probability windows</li>
+              <li className="ml-4"><strong className="text-white">Midnight Open</strong>: Often sets the day&apos;s tone</li>
+              <li className="ml-4"><strong className="text-white">New York Open</strong>: Most volatile—best for entries</li>
+            </ul>
+            <h4 className="text-lg font-semibold text-white mb-2 mt-4">Risk Management</h4>
+            <ul className="space-y-1 mb-3">
+              <li className="ml-4">Never risk more than 1-2% per trade</li>
+              <li className="ml-4">Maximum 3 trades per day</li>
+              <li className="ml-4">Stop trading after 2 consecutive losses</li>
+            </ul>
+          </>
+        ),
         strategy: {
           name: 'Full ICT Model',
           winRate: '73%',
@@ -598,7 +643,11 @@ export function Learning() {
                           
                           {/* Content */}
                           <div className="prose prose-invert max-w-none mb-6">
-                            <div className="text-gray-300 whitespace-pre-line">{section.content}</div>
+                            {typeof section.content === 'string' ? (
+                              <div className="text-gray-300 whitespace-pre-line">{section.content}</div>
+                            ) : (
+                              section.content
+                            )}
                           </div>
 
                           {/* Strategy Guide */}

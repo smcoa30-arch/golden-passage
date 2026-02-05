@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Award, Clock, TrendingDown, Lock } from 'lucide-react';
+import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Clock, TrendingDown, Lock, Brain, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -78,6 +78,84 @@ const aiStrategies = [
   }
 ];
 
+// ==================== DYNAMIC MARKET STRATEGY ====================
+
+interface MarketCondition {
+  time: string;
+  session: string;
+  condition: string;
+  recommendedStrategy: number;
+  reason: string;
+}
+
+function getCurrentMarketCondition(): MarketCondition {
+  const now = new Date();
+  const hour = now.getHours();
+  const day = now.getDay();
+  
+  // Convert to EST (rough approximation)
+  const estHour = (hour - 5 + 24) % 24;
+  
+  // Determine session
+  let session = 'Asia';
+  if (estHour >= 3 && estHour < 10) session = 'London';
+  if (estHour >= 8 && estHour < 17) session = 'New York';
+  if ((estHour >= 3 && estHour < 5) || (estHour >= 8 && estHour < 10)) session = 'Overlap';
+  
+  // Weekend check
+  if (day === 0 || day === 6) {
+    return {
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      session: 'Weekend',
+      condition: 'Markets Closed',
+      recommendedStrategy: 1, // SMC Order Block for analysis
+      reason: 'Markets are closed. Use this time to analyze Order Blocks and plan for the week ahead.'
+    };
+  }
+  
+  // Silver Bullet windows
+  if ((estHour === 10) || (estHour === 14)) {
+    return {
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      session,
+      condition: 'Silver Bullet Window',
+      recommendedStrategy: 0, // ICT Silver Bullet
+      reason: `Currently in the ${estHour === 10 ? 'AM' : 'PM'} Silver Bullet window (10-11 AM / 2-3 PM EST). This is high-probability algorithmic execution time.`
+    };
+  }
+  
+  // NY Session
+  if (session === 'New York' || session === 'Overlap') {
+    return {
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      session,
+      condition: 'High Volatility',
+      recommendedStrategy: 3, // Power of 3
+      reason: `${session} session active. Look for Asia range sweeps and Power of 3 setups as institutions accumulate/manipulate/distribute.`
+    };
+  }
+  
+  // London Session
+  if (session === 'London') {
+    return {
+      time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      session,
+      condition: 'Trend Establishment',
+      recommendedStrategy: 2, // Price Action Flip
+      reason: 'London session establishing daily trend. Watch for break of structure and flip zone retests on major pairs.'
+    };
+  }
+  
+  // Asia Session
+  return {
+    time: now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+    session,
+    condition: 'Consolidation',
+    recommendedStrategy: 1, // SMC Order Block
+    reason: 'Asia session typically consolidates. Mark order blocks and liquidity levels for London/NY breakouts.'
+  };
+}
+
 const STORAGE_KEY = 'trades_v2';
 const EQUITY_KEY = 'starting_equity';
 
@@ -98,6 +176,7 @@ export function Dashboard() {
   const [startingEquity, setStartingEquity] = useState(10000);
   const [showEquitySettings, setShowEquitySettings] = useState(false);
   const [journalLocked, setJournalLocked] = useState(false);
+  const [marketCondition, setMarketCondition] = useState<MarketCondition | null>(null);
 
   // Load trades
   useEffect(() => {
@@ -112,6 +191,15 @@ export function Dashboard() {
     const savedEquity = localStorage.getItem(EQUITY_KEY);
     if (savedEquity) setStartingEquity(parseFloat(savedEquity));
     setLoading(false);
+  }, []);
+
+  // Update market condition periodically
+  useEffect(() => {
+    setMarketCondition(getCurrentMarketCondition());
+    const interval = setInterval(() => {
+      setMarketCondition(getCurrentMarketCondition());
+    }, 60000); // Update every minute
+    return () => clearInterval(interval);
   }, []);
 
   // Filter trades by time range
@@ -542,14 +630,36 @@ export function Dashboard() {
 
         {/* Right Column */}
         <div className="space-y-6">
-          {/* AI Strategy */}
+          {/* AI Strategy with Dynamic Suggestions */}
           <div className="glass-card p-6">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                <Award className="text-yellow-500" size={24} />
+              <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+                <Brain className="text-purple-400" size={20} />
                 AI Strategy
               </h2>
+              {marketCondition && (
+                <span className="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                  {marketCondition.session} Session
+                </span>
+              )}
             </div>
+            
+            {/* Dynamic Market Suggestion */}
+            {marketCondition && (
+              <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-purple-900/30 to-blue-900/30 border border-purple-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="text-yellow-400" size={16} />
+                  <span className="text-sm font-medium text-white">Current Market Insight ({marketCondition.time} EST)</span>
+                </div>
+                <p className="text-xs text-gray-300 mb-2">{marketCondition.reason}</p>
+                <button
+                  onClick={() => setSelectedStrategy(marketCondition.recommendedStrategy)}
+                  className="text-xs px-3 py-1.5 rounded bg-purple-600/30 hover:bg-purple-600/50 text-purple-300 transition-colors"
+                >
+                  Switch to {aiStrategies[marketCondition.recommendedStrategy].title}
+                </button>
+              </div>
+            )}
             
             <div className="mb-4">
               <select
@@ -581,6 +691,17 @@ export function Dashboard() {
                 </div>
               ))}
             </div>
+            
+            {/* Quick Action */}
+            <button
+              onClick={() => {
+                sessionStorage.setItem('openAIPlanner', 'true');
+                navigate('/trades');
+              }}
+              className="w-full mt-4 py-2 rounded-lg bg-gradient-to-r from-purple-600/20 to-blue-600/20 border border-purple-500/30 text-purple-300 text-sm hover:from-purple-600/30 hover:to-blue-600/30 transition-all"
+            >
+              Get AI Trade Analysis →
+            </button>
           </div>
 
           {/* Quick Stats */}
