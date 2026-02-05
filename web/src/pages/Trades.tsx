@@ -254,6 +254,106 @@ Be specific with exact price levels. Use professional institutional terminology.
   };
 }
 
+// ==================== GOOGLE GEMINI AI SERVICE ====================
+
+const GOOGLE_AI_KEY = import.meta.env.VITE_GOOGLE_AI_KEY || 'AIzaSyDgcpJUaMewv-MUl66khU_uP8gGzlwWAB0';
+
+async function getGoogleGeminiAnalysis(
+  instrument: string,
+  tradeType: string
+): Promise<AIAnalysis> {
+  
+  const currentDate = new Date().toISOString().split('T')[0];
+  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
+
+  const prompt = `As an expert institutional trader with 20+ years experience, analyze ${instrument} for ${tradeType} trading.
+
+Today's Date: ${currentDate}
+Current Time (EST): ${currentTime}
+
+Provide a comprehensive trading analysis in this EXACT format:
+
+MARKET_CONTEXT: Current price action, today's trend, key levels to watch, and overall market structure for ${instrument}.
+
+FUNDAMENTAL_BIAS: Analyze DXY direction, interest rate outlook, central bank policies, geopolitical factors, and commodity correlations affecting ${instrument} TODAY.
+
+TECHNICAL_BIAS: Analyze Daily/4H trend, support/resistance levels, liquidity zones, order blocks, and fair value gaps for ${instrument}.
+
+THE_PLAN:
+- Entry Zone: Specific price range for entry
+- Stop Loss: Logical stop level based on structure
+- Take Profit 1: First target with minimum 1:1.5 RR
+- Take Profit 2: Second target at next major level
+
+RISK_WARNING: Upcoming economic events, news risks, or technical invalidation levels to watch.
+
+Be specific with exact price levels. Use professional institutional terminology.`;
+
+  try {
+    console.log('Trying Google Gemini API...');
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 2000
+        }
+      }),
+      signal: controller.signal
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(`Google AI Error: ${errorData.error?.message || response.statusText}`);
+    }
+
+    const data = await response.json();
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    
+    if (!content || content.length < 50) {
+      throw new Error('Empty response from Google AI');
+    }
+
+    // Parse the response (same format as Kimi)
+    const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
+    const fundamentalMatch = content.match(/FUNDAMENTAL_BIAS:\s*([^]*?)(?=TECHNICAL_BIAS:|$)/i);
+    const technicalMatch = content.match(/TECHNICAL_BIAS:\s*([^]*?)(?=THE_PLAN:|$)/i);
+    const planMatch = content.match(/THE_PLAN:\s*([^]*?)(?=RISK_WARNING:|$)/i);
+    const riskMatch = content.match(/RISK_WARNING:\s*([^]*?)$/i);
+    
+    const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/~]+)/i) || content.match(/Entry:\s*([\d.,\s\-/~]+)/i);
+    const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/~]+)/i) || content.match(/Stop:\s*([\d.,\s\-/~]+)/i);
+    const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/~]+)/i) || content.match(/TP1:\s*([\d.,\s\-/~]+)/i) || content.match(/Take Profit:\s*([\d.,\s\-/~]+)/i);
+
+    return {
+      marketContext: contextMatch?.[1]?.trim() || `${instrument} analysis for ${tradeType} trading`,
+      fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Analyze DXY and macro factors',
+      technicalBias: technicalMatch?.[1]?.trim() || 'Check Daily/4H structure manually',
+      plan: planMatch?.[1]?.trim() || 'Follow your trading plan with proper risk management',
+      riskWarning: riskMatch?.[1]?.trim() || 'Always check economic calendar before trading',
+      entryZone: entryMatch?.[1]?.trim() || 'Identify on charts',
+      stopLoss: stopMatch?.[1]?.trim() || 'Below/above structure',
+      takeProfit: tpMatch?.[1]?.trim() || 'Next major S/R level'
+    };
+    
+  } catch (error) {
+    console.error('Google Gemini API failed:', error);
+    throw error;
+  }
+}
+
 // ==================== COMPONENT ====================
 
 export function Trades() {
@@ -478,10 +578,46 @@ export function Trades() {
     }
     setAiLoading(true);
     
-    const analysis = await getKimiTradeAnalysis(
-      aiForm.instrument, 
-      aiForm.tradeType
-    );
+    // Try Kimi first, then fallback to Google Gemini
+    let analysis: AIAnalysis | null = null;
+    let lastError: string = '';
+    
+    // Try Kimi API
+    try {
+      console.log('Attempting Kimi API...');
+      analysis = await getKimiTradeAnalysis(aiForm.instrument, aiForm.tradeType);
+      
+      // Check if Kimi returned an actual error response
+      if (analysis.fundamentalBias.includes('API Error: HTTP 401') || 
+          analysis.fundamentalBias.includes('Invalid Authentication')) {
+        throw new Error('Kimi auth failed');
+      }
+      
+      console.log('Kimi API succeeded');
+    } catch (error) {
+      lastError = 'Kimi API failed, trying Google Gemini...';
+      console.log(lastError);
+      
+      // Fallback to Google Gemini
+      try {
+        analysis = await getGoogleGeminiAnalysis(aiForm.instrument, aiForm.tradeType);
+        console.log('Google Gemini API succeeded');
+      } catch (googleError) {
+        console.error('Both APIs failed:', googleError);
+        // Use fallback response
+        analysis = {
+          marketContext: `${aiForm.instrument} | ${aiForm.tradeType} | ${new Date().toISOString().split('T')[0]}`,
+          fundamentalBias: 'Both Kimi and Google AI APIs are currently unavailable. Please check forexfactory.com for fundamental analysis including: DXY direction, interest rate decisions, and geopolitical news affecting your selected pair.',
+          technicalBias: 'API unavailable. Manually mark: 1) Previous day high/low 2) Asian range high/low 3) Order blocks on H4/Daily 4) Fair value gaps 5) Current trend on Daily/4H timeframe.',
+          plan: `GENERAL ${aiForm.tradeType.toUpperCase()} APPROACH:\n1. Wait for price in premium/discount zone\n2. Look for liquidity sweep\n3. Enter on MSS with LTF confirmation\n4. Risk 1-2% per trade`,
+          riskWarning: 'All AI APIs failed (Kimi: 401 Unauthorized, Google: unavailable). Always verify with your own analysis. Check forexfactory.com for news.',
+          entryZone: 'Mark on chart at key S/R',
+          stopLoss: 'Beyond recent swing high/low',
+          takeProfit: 'Next liquidity pool or 2:1 RR'
+        };
+      }
+    }
+    
     setAiAnalysis(analysis);
     setAiLoading(false);
   };
