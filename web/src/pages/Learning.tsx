@@ -14,7 +14,7 @@ const learningModules = [
       {
         title: 'Market Structure Fundamentals',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/7ORPM7x30vE',
+        videoUrl: 'https://www.youtube.com/embed/JzrO5wU9nG8',
         content: `
 ## Higher Highs, Higher Lows, Lower Highs, Lower Lows
 
@@ -50,7 +50,7 @@ The flip zone is where previous resistance becomes support (or vice versa). This
       {
         title: 'Candlestick Psychology',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/sZJ5pTk0QcU',
+        videoUrl: 'https://www.youtube.com/embed/FhGRr2Gt0uw',
         content: `
 ## Reading the Story of Price
 
@@ -95,7 +95,8 @@ Don't just see candles—read the battle:
       },
       {
         title: 'Premium vs Discount Concepts',
-        type: 'article',
+        type: 'video',
+        videoUrl: 'https://www.youtube.com/embed/UWrvexqN3w8',
         content: `
 ## Institutional Order Flow
 
@@ -147,7 +148,7 @@ In a downtrend:
       {
         title: 'Order Blocks & Mitigation',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/9o-NSA8F5w4',
+        videoUrl: 'https://www.youtube.com/embed/WmFD6lkGMVU',
         content: `
 ## The Building Blocks of Institutional Order Flow
 
@@ -192,7 +193,7 @@ Mitigation means price returning to an order block to "fill" remaining orders.
       {
         title: 'Break of Structure (BOS) vs Change of Character (CHoCH)',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/3gY6-Dq3bG0',
+        videoUrl: 'https://www.youtube.com/embed/FE1bgD9N6DM',
         content: `
 ## Reading Institutional Intent
 
@@ -230,7 +231,8 @@ Reversal signal—indicates potential trend change.
       },
       {
         title: 'Liquidity Sweeps & Inducement',
-        type: 'article',
+        type: 'video',
+        videoUrl: 'https://www.youtube.com/embed/6oTABCDoSVc',
         content: `
 ## Understanding Stop Hunts
 
@@ -286,7 +288,7 @@ Institutions need liquidity to fill large orders—they sweep retail stops.
       {
         title: 'Fair Value Gaps (FVG)',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/6Cp8jyvb0y8',
+        videoUrl: 'https://www.youtube.com/embed/ahpjvyO6-lE',
         content: `
 ## The Imbalance Edge
 
@@ -333,7 +335,7 @@ Best entries when FVG aligns with:
       {
         title: 'Silver Bullet Time Windows',
         type: 'video',
-        videoUrl: 'https://www.youtube.com/embed/6Cp8jyvb0y8',
+        videoUrl: 'https://www.youtube.com/embed/0LvtR007Plc',
         content: `
 ## The 1-Hour High-Probability Windows
 
@@ -379,7 +381,8 @@ ICT discovered specific times when algorithms execute orders.
       },
       {
         title: 'Power of 3: Accumulation, Manipulation, Distribution',
-        type: 'article',
+        type: 'video',
+        videoUrl: 'https://www.youtube.com/embed/Oe8IOKO9jAg',
         content: `
 ## The Institutional Cycle
 
@@ -425,7 +428,8 @@ All markets follow this 3-phase cycle—understand it to avoid being manipulated
       },
       {
         title: 'ICT 2022 Mentorship Model',
-        type: 'article',
+        type: 'video',
+        videoUrl: 'https://www.youtube.com/embed/h8ZFeBWxhgY',
         content: `
 ## The Complete ICT Entry Framework
 
