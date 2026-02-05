@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Camera, CheckCircle, Circle, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
+import { CheckCircle, Circle, Plus, Trash2, Edit2, Save, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 
 interface ChecklistItem {
@@ -50,7 +50,7 @@ const defaultChecklists = {
 };
 
 export function Journal() {
-  const { user } = useAuth();
+  useAuth(); // Ensure user is authenticated
   
   // Checklists state
   const [preMarket, setPreMarket] = useState<ChecklistItem[]>([]);
