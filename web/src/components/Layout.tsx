@@ -10,7 +10,9 @@ import {
   LogOut,
   User,
   Brain,
-  Target
+  Target,
+  Crown,
+  Sparkles
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
@@ -145,8 +147,34 @@ export function Layout({ children }: LayoutProps) {
               })}
             </nav>
 
+            {/* Premium Upgrade Section */}
+            <div className="mt-6">
+              <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                Subscription
+              </p>
+              <div className="mt-2 p-4 rounded-xl bg-gradient-to-br from-orange-600/20 to-purple-600/20 border border-orange-500/30">
+                <div className="flex items-center gap-2 mb-2">
+                  <Crown className="text-orange-400" size={20} />
+                  <span className="font-medium text-white">Free Trial</span>
+                </div>
+                <p className="text-xs text-gray-400 mb-3">
+                  Upgrade to Premium for unlimited AI access and advanced features
+                </p>
+                <button 
+                  onClick={() => {
+                    navigate('/subscription');
+                    setSidebarOpen(false);
+                  }}
+                  className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-orange-600 to-purple-600 hover:from-orange-500 hover:to-purple-500 text-white text-sm font-medium transition-all flex items-center justify-center gap-2"
+                >
+                  <Sparkles size={16} />
+                  Upgrade to Premium
+                </button>
+              </div>
+            </div>
+
             {/* AI Trade Assistant Section */}
-            <div className="mt-8">
+            <div className="mt-6">
               <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 AI Assistant
               </p>

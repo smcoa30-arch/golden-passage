@@ -8,6 +8,7 @@ import { Journal } from './pages/Journal';
 import { Learning } from './pages/Learning';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
+import { Subscription } from './pages/Subscription';
 import { useAuth } from './contexts/AuthContext';
 import { AIProvider } from './contexts/AIContext';
 
@@ -39,6 +40,7 @@ function App() {
         <Route path="/analytics" element={user ? <Layout><Analytics /></Layout> : <Navigate to="/login" />} />
         <Route path="/journal" element={user ? <Layout><Journal /></Layout> : <Navigate to="/login" />} />
         <Route path="/learning" element={<Layout><Learning /></Layout>} />
+        <Route path="/subscription" element={<Layout><Subscription /></Layout>} />
         
         {/* 404 */}
         <Route path="*" element={
