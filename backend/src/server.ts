@@ -13,9 +13,19 @@ import swaggerJsdoc from 'swagger-jsdoc';
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy (required for Vercel)
+app.set('trust proxy', 1);
+
 console.log('Server starting...');
 console.log('Environment:', process.env.NODE_ENV || 'development');
-console.log('KIMI_API_KEY loaded:', !!process.env.KIMI_API_KEY, 'Length:', process.env.KIMI_API_KEY?.length || 0);
+console.log('VERCEL:', process.env.VERCEL || 'not set');
+
+// Log all environment variables for debugging
+console.log('Environment Variables Check:');
+console.log('  GOOGLE_AI_KEY exists:', !!process.env.GOOGLE_AI_KEY, 'Length:', process.env.GOOGLE_AI_KEY?.length || 0);
+console.log('  KIMI_API_KEY exists:', !!process.env.KIMI_API_KEY, 'Length:', process.env.KIMI_API_KEY?.length || 0);
+console.log('  OPENROUTER_API_KEY exists:', !!process.env.OPENROUTER_API_KEY, 'Length:', process.env.OPENROUTER_API_KEY?.length || 0);
+console.log('  All env keys:', Object.keys(process.env).filter(k => k.includes('KEY') || k.includes('AI')));
 
 // Security middleware
 app.use(helmet());
@@ -70,7 +80,24 @@ app.get('/', (req, res) => {
     status: 'ok', 
     message: 'Golden Passage API is running',
     timestamp: new Date().toISOString(),
-    version: '1.0.0'
+    version: '1.0.0',
+    env: {
+      google_ai: !!process.env.GOOGLE_AI_KEY,
+      kimi_ai: !!process.env.KIMI_API_KEY,
+      openrouter: !!process.env.OPENROUTER_API_KEY,
+    }
+  });
+});
+
+// Debug endpoint to check environment (remove in production)
+app.get('/debug/env', (req, res) => {
+  res.json({
+    environment: process.env.NODE_ENV,
+    vercel: process.env.VERCEL,
+    hasGoogleKey: !!process.env.GOOGLE_AI_KEY,
+    hasKimiKey: !!process.env.KIMI_API_KEY,
+    hasOpenRouterKey: !!process.env.OPENROUTER_API_KEY,
+    allEnvKeys: Object.keys(process.env).filter(k => !k.includes('SECRET') && !k.includes('PASSWORD')),
   });
 });
 

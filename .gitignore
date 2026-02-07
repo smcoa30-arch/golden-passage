@@ -65,3 +65,4 @@ uploads/
 .cache/
 temp/
 tmp/
+.env*.local
