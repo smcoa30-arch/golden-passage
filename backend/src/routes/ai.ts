@@ -206,13 +206,13 @@ async function getGoogleAnalysis(instrument: string, tradeType: string): Promise
     console.log('Calling Google Gemini API for:', instrument);
     
     // Try different model names as they change frequently
-    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
+    const models = ['gemini-pro'];
     
     for (const model of models) {
       try {
         console.log(`Trying model: ${model}`);
         const response = await fetch(
-          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
+          `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
           {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -579,9 +579,9 @@ router.get('/test', async (req: Request, res: Response) => {
   if (GOOGLE_AI_KEY) {
     results.google.tested = true;
     try {
-      const model = 'gemini-1.5-flash';
+      const model = 'gemini-pro';
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
+        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
