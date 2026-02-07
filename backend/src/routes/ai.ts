@@ -553,6 +553,70 @@ router.post('/analyze-setup', async (req: Request, res: Response) => {
  *     summary: Generate AI daily strategy
  *     tags: [AI]
  */
+/**
+ * @swagger
+ * /api/v1/ai/test:
+ *   get:
+ *     summary: Test AI APIs
+ *     tags: [AI]
+ */
+router.get('/test', async (req: Request, res: Response) => {
+  console.log('Testing AI APIs...');
+  
+  // Test each API
+  const results = {
+    google: { tested: false, working: false, error: null as string | null },
+    kimi: { tested: false, working: false, error: null as string | null },
+    openrouter: { tested: false, working: false, error: null as string | null },
+  };
+  
+  // Test Google
+  if (GOOGLE_AI_KEY) {
+    results.google.tested = true;
+    try {
+      const googleResult = await getGoogleAnalysis('EUR/USD', 'Intraday');
+      results.google.working = !!googleResult;
+      if (!googleResult) results.google.error = 'Returned null';
+    } catch (e: any) {
+      results.google.error = e.message;
+    }
+  }
+  
+  // Test Kimi
+  if (KIMI_API_KEY) {
+    results.kimi.tested = true;
+    try {
+      const kimiResult = await getKimiAnalysis('EUR/USD', 'Intraday');
+      results.kimi.working = !!kimiResult;
+      if (!kimiResult) results.kimi.error = 'Returned null';
+    } catch (e: any) {
+      results.kimi.error = e.message;
+    }
+  }
+  
+  // Test OpenRouter
+  if (OPENROUTER_API_KEY) {
+    results.openrouter.tested = true;
+    try {
+      const orResult = await getOpenRouterAnalysis('EUR/USD', 'Intraday');
+      results.openrouter.working = !!orResult;
+      if (!orResult) results.openrouter.error = 'Returned null';
+    } catch (e: any) {
+      results.openrouter.error = e.message;
+    }
+  }
+  
+  res.json({
+    env: {
+      hasGoogleKey: !!GOOGLE_AI_KEY,
+      hasKimiKey: !!KIMI_API_KEY,
+      hasOpenRouterKey: !!OPENROUTER_API_KEY,
+    },
+    results,
+    timestamp: new Date().toISOString()
+  });
+});
+
 router.post('/daily-strategy', (req: Request, res: Response) => {
   res.json({
     strategy: {

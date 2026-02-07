@@ -11,6 +11,7 @@ export interface AIAnalysis {
   stopLoss: string;
   takeProfit: string;
   marketContext: string;
+  source?: string; // 'google' | 'kimi' | 'openrouter' | 'demo'
 }
 
 // Demo mode - generates realistic analysis without APIs
@@ -122,7 +123,11 @@ export async function getAIAnalysis(
     }
 
     console.log('AI analysis complete, source:', data.source);
-    return data.analysis;
+    // Add source to the analysis object
+    return {
+      ...data.analysis,
+      source: data.source
+    };
   } catch (error) {
     console.error('AI analysis error:', error);
     console.log('Falling back to demo mode...');
