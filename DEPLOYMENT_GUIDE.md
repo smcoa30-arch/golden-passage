@@ -31,7 +31,7 @@ git push origin main
    - **Framework Preset**: Other
    - **Root Directory**: `backend`
    - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
+   - **Output Directory**: 
 
 ### 2.2 Set Environment Variables
 Go to **Settings** → **Environment Variables**, add:

@@ -465,6 +465,11 @@ router.post('/analyze', async (req: Request, res: Response) => {
   }
 
   console.log(`AI analyze request: ${instrument} (${tradeType})`);
+  console.log('API Keys status:', {
+    google: !!GOOGLE_AI_KEY,
+    kimi: !!KIMI_API_KEY,
+    openrouter: !!OPENROUTER_API_KEY
+  });
   
   // Try Google first (priority #1)
   let analysis = await getGoogleAnalysis(instrument, tradeType);
