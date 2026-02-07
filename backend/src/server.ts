@@ -20,7 +20,11 @@ console.log('KIMI_API_KEY loaded:', !!process.env.KIMI_API_KEY, 'Length:', proce
 // Security middleware
 app.use(helmet());
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'https://golden-passage.vercel.app', // Your frontend URL
+    // Add any other allowed origins here
+  ],
   credentials: true
 }));
 
