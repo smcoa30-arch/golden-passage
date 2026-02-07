@@ -1,1 +1,4 @@
 .vercel
+import.env
+.env
+.env.local
