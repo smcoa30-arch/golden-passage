@@ -31,14 +31,14 @@ console.log('  All env keys:', Object.keys(process.env).filter(k => k.includes('
 app.use(helmet());
 
 // CORS configuration - allow all vercel.app subdomains and common origins
-app.use(cors({
-  origin: (origin, callback) => {
+const corsOptions = {
+  origin: (origin: any, callback: any) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
     // Allowed origin patterns
     const allowedPatterns = [
-      /^http://localhost:\d+$/,                    // localhost:any_port
+      /^http:\/\/localhost:\d+$/,                    // localhost:any_port
       /^https:\/\/golden-passage.*\.vercel\.app$/, // any golden-passage vercel app
       /^https:\/\/.*\.vercel\.app$/,               // any vercel app (broad)
     ];
@@ -62,8 +62,15 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS preflight for all routes
+app.options('*', cors(corsOptions));
 
 // Rate limiting
 const limiter = rateLimit({
