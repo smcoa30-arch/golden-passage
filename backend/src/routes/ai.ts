@@ -15,9 +15,10 @@ interface AIAnalysis {
 }
 
 // Get API keys from environment (after dotenv.config())
-const KIMI_API_KEY = process.env.KIMI_API_KEY || process.env.VITE_KIMI_API_KEY || '';
-const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY || process.env.VITE_GOOGLE_AI_KEY || '';
-const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || '';
+// Check multiple possible env var names for flexibility
+const KIMI_API_KEY = process.env.KIMI_API_KEY || process.env.VITE_KIMI_API_KEY || process.env.kimi_api_key || '';
+const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY || process.env.VITE_GOOGLE_AI_KEY || process.env.google_ai_key || '';
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || process.env.openrouter_api_key || '';
 
 // Debug logging
 console.log('AI Routes - Environment check:');
