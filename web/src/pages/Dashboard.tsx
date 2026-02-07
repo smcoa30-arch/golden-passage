@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Clock, TrendingDown, Lock, Brain, Sparkles } from 'lucide-react';
+import { TrendingUp, Activity, Target, Plus, DollarSign, PieChart, BarChart3, Clock, TrendingDown, Lock, Brain, Sparkles, RotateCcw, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -202,6 +202,31 @@ export function Dashboard() {
     return () => clearInterval(interval);
   }, []);
 
+  // Reset all data
+  const handleResetData = () => {
+    if (!confirm('WARNING: This will delete ALL your trades and reset your equity. This cannot be undone. Are you sure?')) {
+      return;
+    }
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(EQUITY_KEY);
+    setTrades([]);
+    setStartingEquity(10000);
+    alert('All data has been reset. Starting fresh!');
+  };
+
+  // Reset prop firm limits (for demo/testing)
+  const handleResetPropFirm = () => {
+    if (!confirm('Reset prop firm risk limits? This will clear the trading halt.')) {
+      return;
+    }
+    // Clear today's trades to reset daily loss
+    const today = new Date().toISOString().split('T')[0];
+    const filteredTrades = trades.filter(t => !t.date.startsWith(today));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredTrades));
+    setTrades(filteredTrades);
+    alert('Prop firm limits reset. You can trade again!');
+  };
+
   // Filter trades by time range
   const filteredTrades = useMemo(() => {
     if (timeRange === 'all') return trades;
@@ -371,14 +396,32 @@ export function Dashboard() {
     <div className="max-w-7xl mx-auto">
       {/* Prop Firm Alert */}
       {journalLocked && (
-        <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl flex items-center gap-3">
-          <Lock className="text-red-400" size={24} />
-          <div>
-            <h3 className="font-semibold text-red-400">Trading Halted - Risk Limit Reached</h3>
-            <p className="text-red-300/80 text-sm">
-              You've reached the prop firm daily loss limit (4%) or max drawdown (8%). 
-              Take a break and review your strategy.
-            </p>
+        <div className="mb-6 p-4 bg-red-900/30 border border-red-700/50 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <Lock className="text-red-400" size={24} />
+            <div>
+              <h3 className="font-semibold text-red-400">Trading Halted - Risk Limit Reached</h3>
+              <p className="text-red-300/80 text-sm">
+                You've reached the prop firm daily loss limit (4%) or max drawdown (8%). 
+                Take a break and review your strategy.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-3 ml-11">
+            <button
+              onClick={handleResetPropFirm}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600/20 hover:bg-orange-600/30 border border-orange-500/30 text-orange-300 rounded-lg text-sm transition-colors"
+            >
+              <RotateCcw size={16} />
+              Reset Risk Limits
+            </button>
+            <button
+              onClick={handleResetData}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 text-red-300 rounded-lg text-sm transition-colors"
+            >
+              <AlertTriangle size={16} />
+              Reset All Data
+            </button>
           </div>
         </div>
       )}
@@ -399,6 +442,14 @@ export function Dashboard() {
             <option value="month">Last 30 Days</option>
             <option value="all">All Time</option>
           </select>
+          <button
+            onClick={handleResetData}
+            className="flex items-center gap-2 bg-gray-800 text-gray-400 px-4 py-2 rounded-lg hover:bg-red-900/30 hover:text-red-400 transition-colors"
+            title="Reset all trading data"
+          >
+            <RotateCcw size={18} />
+            <span className="hidden sm:inline">Reset</span>
+          </button>
           <button 
             onClick={() => navigate('/trades')}
             disabled={journalLocked}
