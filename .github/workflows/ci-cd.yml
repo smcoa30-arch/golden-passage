@@ -139,6 +139,10 @@ jobs:
           labels: ${{ steps.meta-backend.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-args: |
+            GOOGLE_AI_KEY=${{ secrets.GOOGLE_AI_KEY }}
+            KIMI_API_KEY=${{ secrets.KIMI_API_KEY }}
+            OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}
 
       - name: Extract metadata for Frontend
         id: meta-frontend

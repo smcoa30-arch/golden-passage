@@ -15,6 +15,16 @@ FROM node:18-alpine
 
 WORKDIR /app
 
+# Accept build arguments for AI API keys
+ARG GOOGLE_AI_KEY
+ARG KIMI_API_KEY
+ARG OPENROUTER_API_KEY
+
+# Set environment variables
+ENV GOOGLE_AI_KEY=${GOOGLE_AI_KEY}
+ENV KIMI_API_KEY=${KIMI_API_KEY}
+ENV OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+
 # Copy package files
 COPY package*.json ./
 RUN npm install --omit=dev

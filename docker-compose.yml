@@ -38,6 +38,10 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+      args:
+        GOOGLE_AI_KEY: ${GOOGLE_AI_KEY}
+        KIMI_API_KEY: ${KIMI_API_KEY}
+        OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     container_name: golden-passage-api
     environment:
       NODE_ENV: production
@@ -56,6 +60,9 @@ services:
       STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY}
       PAYPAL_CLIENT_ID: ${PAYPAL_CLIENT_ID}
       PAYPAL_CLIENT_SECRET: ${PAYPAL_CLIENT_SECRET}
+      GOOGLE_AI_KEY: ${GOOGLE_AI_KEY}
+      KIMI_API_KEY: ${KIMI_API_KEY}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
     ports:
       - "5000:5000"
     depends_on:
