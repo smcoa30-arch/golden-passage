@@ -30,34 +30,36 @@ console.log('  All env keys:', Object.keys(process.env).filter(k => k.includes('
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - allow all vercel.app subdomains and common origins
+// CORS configuration - allow specific origins
 const corsOptions = {
   origin: (origin: any, callback: any) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // Allow requests with no origin (mobile apps, curl, postman, etc.)
     if (!origin) return callback(null, true);
     
-    // Allowed origin patterns
-    const allowedPatterns = [
-      /^http:\/\/localhost:\d+$/,                    // localhost:any_port
-      /^https:\/\/golden-passage.*\.vercel\.app$/, // any golden-passage vercel app
-      /^https:\/\/.*\.vercel\.app$/,               // any vercel app (broad)
+    // Explicitly allowed origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://golden-passage-frontend.vercel.app',
     ];
     
-    // Also check FRONTEND_URL from env
-    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
-      return callback(null, true);
+    // Also check FRONTEND_URL from env if set
+    if (process.env.FRONTEND_URL) {
+      allowedOrigins.push(process.env.FRONTEND_URL);
     }
     
-    // Check against patterns
-    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
-    
-    if (isAllowed) {
-      console.log('CORS allowed origin:', origin);
+    // Check if origin is in allowed list
+    if (allowedOrigins.includes(origin)) {
+      console.log('✅ CORS allowed origin:', origin);
       callback(null, true);
     } else {
-      console.log('CORS blocked origin:', origin);
-      // Still allow it for now (development-friendly)
-      callback(null, true);
+      console.log('⚠️ CORS - Origin not in allowlist:', origin);
+      // In production, be strict; in development, allow all
+      if (process.env.NODE_ENV === 'production') {
+        callback(new Error('Not allowed by CORS'));
+      } else {
+        callback(null, true);
+      }
     }
   },
   credentials: true,
