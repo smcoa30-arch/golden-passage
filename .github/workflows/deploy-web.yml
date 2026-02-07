@@ -37,6 +37,9 @@ jobs:
           VITE_STRIPE_PRICE_ID: ${{ secrets.VITE_STRIPE_PRICE_ID }}
           VITE_USDT_ADDRESS: ${{ secrets.VITE_USDT_ADDRESS }}
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_AI_KEY: ${{ secrets.VITE_GOOGLE_AI_KEY }}
+          VITE_KIMI_API_KEY: ${{ secrets.VITE_KIMI_API_KEY }}
+          VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}
           
       - name: Deploy to Vercel
         uses: vercel/action-deploy@v1

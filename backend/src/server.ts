@@ -83,7 +83,13 @@ app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
-});
+// Export for Vercel serverless
+export default app;
+
+// Start server only if not running on Vercel (local development)
+if (process.env.VERCEL !== '1') {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📚 API Docs: http://localhost:${PORT}/api-docs`);
+  });
+}
