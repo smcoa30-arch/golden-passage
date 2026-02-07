@@ -568,54 +568,121 @@ router.post('/analyze-setup', async (req: Request, res: Response) => {
 router.get('/test', async (req: Request, res: Response) => {
   console.log('Testing AI APIs...');
   
-  // Test each API
+  // Test each API with detailed logging
   const results = {
-    google: { tested: false, working: false, error: null as string | null },
-    kimi: { tested: false, working: false, error: null as string | null },
-    openrouter: { tested: false, working: false, error: null as string | null },
+    google: { tested: false, working: false, error: null as string | null, details: null as any },
+    kimi: { tested: false, working: false, error: null as string | null, details: null as any },
+    openrouter: { tested: false, working: false, error: null as string | null, details: null as any },
   };
   
-  // Test Google
+  // Test Google directly
   if (GOOGLE_AI_KEY) {
     results.google.tested = true;
     try {
-      const googleResult = await getGoogleAnalysis('EUR/USD', 'Intraday');
-      results.google.working = !!googleResult;
-      if (!googleResult) results.google.error = 'Returned null';
+      const model = 'gemini-1.5-flash-latest';
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'Say "Google API working"' }] }],
+            generationConfig: { temperature: 0.3, maxOutputTokens: 100 }
+          })
+        }
+      );
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        results.google.error = `HTTP ${response.status}: ${errorText}`;
+      } else {
+        const data = await response.json();
+        results.google.working = true;
+        results.google.details = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No content';
+      }
     } catch (e: any) {
       results.google.error = e.message;
     }
   }
   
-  // Test Kimi
+  // Test Kimi directly
   if (KIMI_API_KEY) {
     results.kimi.tested = true;
     try {
-      const kimiResult = await getKimiAnalysis('EUR/USD', 'Intraday');
-      results.kimi.working = !!kimiResult;
-      if (!kimiResult) results.kimi.error = 'Returned null';
+      const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${KIMI_API_KEY}`
+        },
+        body: JSON.stringify({
+          model: 'kimi-latest',
+          messages: [{ role: 'user', content: 'Say "Kimi API working"' }],
+          temperature: 0.3,
+          max_tokens: 100
+        })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        results.kimi.error = `HTTP ${response.status}: ${errorText}`;
+      } else {
+        const data = await response.json();
+        results.kimi.working = true;
+        results.kimi.details = data.choices?.[0]?.message?.content || 'No content';
+      }
     } catch (e: any) {
       results.kimi.error = e.message;
     }
   }
   
-  // Test OpenRouter
+  // Test OpenRouter directly
   if (OPENROUTER_API_KEY) {
     results.openrouter.tested = true;
     try {
-      const orResult = await getOpenRouterAnalysis('EUR/USD', 'Intraday');
-      results.openrouter.working = !!orResult;
-      if (!orResult) results.openrouter.error = 'Returned null';
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+      
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        signal: controller.signal,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+          'HTTP-Referer': 'https://golden-passage.com',
+          'X-Title': 'Golden Passage Trading Platform'
+        },
+        body: JSON.stringify({
+          model: 'qwen/qwen3-coder-next',
+          messages: [{ role: 'user', content: 'Say "OpenRouter API working"' }],
+          temperature: 0.3,
+          max_tokens: 100
+        })
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        results.openrouter.error = `HTTP ${response.status}: ${errorText}`;
+      } else {
+        const data = await response.json();
+        results.openrouter.working = true;
+        results.openrouter.details = data.choices?.[0]?.message?.content || 'No content';
+      }
     } catch (e: any) {
-      results.openrouter.error = e.message;
+      results.openrouter.error = e.name === 'AbortError' ? 'Timeout after 10s' : e.message;
     }
   }
   
   res.json({
     env: {
       hasGoogleKey: !!GOOGLE_AI_KEY,
+      googleKeyLength: GOOGLE_AI_KEY?.length,
       hasKimiKey: !!KIMI_API_KEY,
+      kimiKeyLength: KIMI_API_KEY?.length,
       hasOpenRouterKey: !!OPENROUTER_API_KEY,
+      openrouterKeyLength: OPENROUTER_API_KEY?.length,
     },
     results,
     timestamp: new Date().toISOString()
