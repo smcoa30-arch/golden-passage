@@ -60,6 +60,16 @@ app.get('/health', (req, res) => {
   });
 });
 
+// Root path for Vercel health check
+app.get('/', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    message: 'Golden Passage API is running',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0'
+  });
+});
+
 // API Routes
 app.get('/api/v1', (req, res) => {
   res.json({ message: 'Welcome to Golden Passage API', version: '1.0.0' });
