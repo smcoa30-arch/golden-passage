@@ -206,7 +206,7 @@ async function getGoogleAnalysis(instrument: string, tradeType: string): Promise
     console.log('Calling Google Gemini API for:', instrument);
     
     // Try different model names as they change frequently
-    const models = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
+    const models = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-pro'];
     
     for (const model of models) {
       try {
@@ -579,7 +579,7 @@ router.get('/test', async (req: Request, res: Response) => {
   if (GOOGLE_AI_KEY) {
     results.google.tested = true;
     try {
-      const model = 'gemini-1.5-flash-latest';
+      const model = 'gemini-1.5-flash';
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
         {
