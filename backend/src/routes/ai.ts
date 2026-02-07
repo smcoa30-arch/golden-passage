@@ -19,6 +19,12 @@ interface AIAnalysis {
 const KIMI_API_KEY = process.env.KIMI_API_KEY || process.env.VITE_KIMI_API_KEY || process.env.kimi_api_key || '';
 const GOOGLE_AI_KEY = process.env.GOOGLE_AI_KEY || process.env.VITE_GOOGLE_AI_KEY || process.env.google_ai_key || '';
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || process.env.VITE_OPENROUTER_API_KEY || process.env.openrouter_api_key || '';
+// Track last errors from providers for diagnostics
+const PROVIDER_ERRORS: { [key: string]: string | null } = {
+  google: null,
+  kimi: null,
+  openrouter: null
+};
 
 // Debug logging
 console.log('AI Routes - Environment check:');
@@ -156,6 +162,7 @@ Be specific with price levels.`
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Kimi API failed:', response.status, errorText);
+      PROVIDER_ERRORS.kimi = `HTTP ${response.status}: ${errorText}`;
       return null;
     }
 
@@ -164,6 +171,7 @@ Be specific with price levels.`
     
     if (!content || content.length < 50) {
       console.log('Kimi response too short');
+      PROVIDER_ERRORS.kimi = 'Kimi returned empty/short response';
       return null;
     }
 
@@ -179,6 +187,7 @@ Be specific with price levels.`
     const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/~]+)/i) || content.match(/TP1:\s*([\d.,\s\-/~]+)/i);
 
     console.log('Kimi API success for:', instrument);
+    PROVIDER_ERRORS.kimi = null;
     
     return {
       marketContext: contextMatch?.[1]?.trim() || `${instrument} analysis`,
@@ -192,6 +201,7 @@ Be specific with price levels.`
     };
   } catch (error) {
     console.error('Kimi error:', error);
+    PROVIDER_ERRORS.kimi = error?.message || String(error);
     return null;
   }
 }
@@ -206,7 +216,7 @@ async function getGoogleAnalysis(instrument: string, tradeType: string): Promise
     console.log('Calling Google Gemini API for:', instrument);
     
     // Try different model names as they change frequently
-    const models = ['gemini-pro'];
+    const models = ['gemini-pro', 'gemini-1.0-pro', 'gemini-1.5-pro', 'gemini-1.5-flash-latest'];
     
     for (const model of models) {
       try {
@@ -239,6 +249,7 @@ Use exact format with colons.`
         if (!response.ok) {
           const errorText = await response.text();
           console.error(`Google API (${model}) failed:`, response.status, errorText);
+          PROVIDER_ERRORS.google = `Model ${model} HTTP ${response.status}: ${errorText}`;
           continue; // Try next model
         }
 
@@ -247,10 +258,12 @@ Use exact format with colons.`
         
         if (!content || content.length < 50) {
           console.log(`Google API (${model}) response too short`);
+          PROVIDER_ERRORS.google = `Model ${model} returned empty/short response`;
           continue;
         }
 
         console.log(`Google API (${model}) success!`);
+        PROVIDER_ERRORS.google = null;
 
         const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
         const fundamentalMatch = content.match(/FUNDAMENTAL_BIAS:\s*([^]*?)(?=TECHNICAL_BIAS:|$)/i);
@@ -274,6 +287,7 @@ Use exact format with colons.`
         };
       } catch (modelError) {
         console.error(`Google API (${model}) error:`, modelError);
+        PROVIDER_ERRORS.google = modelError?.message || String(modelError);
         continue;
       }
     }
@@ -282,6 +296,7 @@ Use exact format with colons.`
     return null;
   } catch (error) {
     console.error('Google error:', error);
+    PROVIDER_ERRORS.google = error?.message || String(error);
     return null;
   }
 }
@@ -386,6 +401,7 @@ Be specific with exact price levels for ${instrument}.`
     if (!response.ok) {
       const errorText = await response.text();
       console.error('OpenRouter API failed:', response.status, errorText);
+      PROVIDER_ERRORS.openrouter = `HTTP ${response.status}: ${errorText}`;
       return null;
     }
 
@@ -394,10 +410,12 @@ Be specific with exact price levels for ${instrument}.`
     
     if (!content || content.length < 100) {
       console.log('OpenRouter response too short');
+      PROVIDER_ERRORS.openrouter = 'OpenRouter returned empty/short response';
       return null;
     }
 
     console.log('OpenRouter API success!');
+    PROVIDER_ERRORS.openrouter = null;
 
     // Parse the response
     const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
@@ -423,13 +441,16 @@ Be specific with exact price levels for ${instrument}.`
   } catch (error: any) {
     if (error.name === 'AbortError') {
       console.error('OpenRouter API timed out after 15 seconds');
+      PROVIDER_ERRORS.openrouter = 'Timeout after 15s';
     } else {
       console.error('OpenRouter error:', error);
+      PROVIDER_ERRORS.openrouter = error?.message || String(error);
     }
     return null;
   }
 }
 
+/**
 /**
  * @swagger
  * /api/v1/ai/analyze:
@@ -474,14 +495,14 @@ router.post('/analyze', async (req: Request, res: Response) => {
   // Try Google first (priority #1)
   let analysis = await getGoogleAnalysis(instrument, tradeType);
   let source = 'google';
-  
+
   // Try Kimi if Google failed
   if (!analysis) {
     console.log('Google failed, trying Kimi...');
     analysis = await getKimiAnalysis(instrument, tradeType);
     source = 'kimi';
   }
-  
+
   // Try OpenRouter if Kimi failed
   if (!analysis) {
     console.log('Kimi failed, trying OpenRouter...');
@@ -499,8 +520,10 @@ router.post('/analyze', async (req: Request, res: Response) => {
   res.json({
     success: true,
     source,
-    analysis
+    analysis,
+    providerErrors: PROVIDER_ERRORS
   });
+  return;
 });
 
 /**
@@ -522,15 +545,13 @@ router.post('/analyze-setup', async (req: Request, res: Response) => {
   // Try Google first (priority #1)
   let analysis = await getGoogleAnalysis(instrument, tradeType);
   let source = 'google';
-  
-  // Try Kimi if Google failed
+
   if (!analysis) {
     console.log('Google failed, trying Kimi...');
     analysis = await getKimiAnalysis(instrument, tradeType);
     source = 'kimi';
   }
-  
-  // Try OpenRouter if Kimi failed
+
   if (!analysis) {
     console.log('Kimi failed, trying OpenRouter...');
     analysis = await getOpenRouterAnalysis(instrument, tradeType);
@@ -547,8 +568,10 @@ router.post('/analyze-setup', async (req: Request, res: Response) => {
   res.json({
     success: true,
     source,
-    analysis
+    analysis,
+    providerErrors: PROVIDER_ERRORS
   });
+  return;
 });
 
 /**
@@ -683,6 +706,8 @@ router.get('/test', async (req: Request, res: Response) => {
       results.openrouter.error = e.name === 'AbortError' ? 'Timeout after 10s' : e.message;
     }
   }
+
+  
   
   res.json({
     env: {
@@ -694,6 +719,7 @@ router.get('/test', async (req: Request, res: Response) => {
       openrouterKeyLength: OPENROUTER_API_KEY?.length,
     },
     results,
+    providerErrors: PROVIDER_ERRORS,
     timestamp: new Date().toISOString()
   });
 });

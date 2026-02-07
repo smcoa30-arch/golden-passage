@@ -111,6 +111,9 @@ docker-compose up -d
 | `DB_PASSWORD` | Database password |
 | `JWT_SECRET` | JWT signing secret |
 | `STRIPE_SECRET_KEY` | Stripe secret key |
+| `GOOGLE_AI_KEY` | Google Generative AI API key (optional) |
+| `KIMI_API_KEY` | Kimi API key (optional) |
+| `OPENROUTER_API_KEY` | OpenRouter API key (optional) |
 
 ---
 

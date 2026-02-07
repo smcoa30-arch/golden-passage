@@ -1,0 +1,88 @@
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Configure Vercel environment variables
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          GOOGLE_AI_KEY: ${{ secrets.GOOGLE_AI_KEY }}
+          KIMI_API_KEY: ${{ secrets.KIMI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${VERCEL_TOKEN:-}" ] || [ -z "${VERCEL_PROJECT_ID:-}" ]; then
+            echo "Missing Vercel credentials. Set repository secrets: VERCEL_TOKEN and VERCEL_PROJECT_ID" >&2
+            exit 1
+          fi
+
+          # Helper to add/update env var in Vercel project
+          upsert_env() {
+            local key="$1" value="$2" target=${3:-production}
+            if [ -z "${value:-}" ]; then
+              echo "Skipping $key because value is empty"
+              return
+            fi
+
+            echo "Upserting $key into Vercel project ${VERCEL_PROJECT_ID} (target: ${target})"
+
+            # Create env var (Vercel will return 409 if exists), then update if necessary
+            resp=$(curl -s -o /dev/stderr -w "%{http_code}" -X POST "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env" \
+              -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+              -H "Content-Type: application/json" \
+              -d "{\"key\":\"${key}\",\"value\":\"${value}\",\"target\":[\"${target}\"]}" ) || true
+
+            if [ "$resp" = "409" ]; then
+              # Find existing env var id and update
+              envs=$(curl -s -H "Authorization: Bearer ${VERCEL_TOKEN}" "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env")
+              env_id=$(echo "$envs" | jq -r ".envs[] | select(.key==\"${key}\") | .id" | head -n1)
+              if [ -n "$env_id" ]; then
+                curl -s -X PATCH "https://api.vercel.com/v9/projects/${VERCEL_PROJECT_ID}/env/${env_id}" \
+                  -H "Authorization: Bearer ${VERCEL_TOKEN}" \
+                  -H "Content-Type: application/json" \
+                  -d "{\"value\":\"${value}\"}" >/dev/null
+                echo "Updated existing env var $key"
+              else
+                echo "Could not find existing env id for $key" >&2
+              fi
+            else
+              echo "Created $key (response code: $resp)"
+            fi
+          }
+
+          # Install jq for JSON parsing
+          sudo apt-get update && sudo apt-get install -y jq
+
+          upsert_env GOOGLE_AI_KEY "${GOOGLE_AI_KEY}"
+          upsert_env KIMI_API_KEY "${KIMI_API_KEY}"
+          upsert_env OPENROUTER_API_KEY "${OPENROUTER_API_KEY}"
+          upsert_env FRONTEND_URL "${FRONTEND_URL}"
+          upsert_env VITE_API_URL "${VITE_API_URL}"
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
