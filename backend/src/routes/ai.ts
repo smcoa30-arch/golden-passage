@@ -579,26 +579,35 @@ router.get('/test', async (req: Request, res: Response) => {
   if (GOOGLE_AI_KEY) {
     results.google.tested = true;
     try {
-      const model = 'gemini-pro';
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Say "Google API working"' }] }],
-            generationConfig: { temperature: 0.3, maxOutputTokens: 100 }
-          })
-        }
-      );
+      // Try multiple models
+      const models = ['gemini-1.0-pro', 'gemini-pro', 'gemini-1.5-flash-latest'];
+      let lastError = null;
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        results.google.error = `HTTP ${response.status}: ${errorText}`;
-      } else {
-        const data = await response.json();
-        results.google.working = true;
-        results.google.details = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No content';
+      for (const model of models) {
+        const response = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GOOGLE_AI_KEY}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: 'Say "Google API working"' }] }],
+              generationConfig: { temperature: 0.3, maxOutputTokens: 100 }
+            })
+          }
+        );
+        
+        if (response.ok) {
+          const data = await response.json();
+          results.google.working = true;
+          results.google.details = data.candidates?.[0]?.content?.parts?.[0]?.text || `Success with ${model}`;
+          break;
+        } else {
+          lastError = await response.text();
+        }
+      }
+      
+      if (!results.google.working) {
+        results.google.error = `All models failed. Last error: ${lastError}`;
       }
     } catch (e: any) {
       results.google.error = e.message;
