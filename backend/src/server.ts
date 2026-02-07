@@ -1,15 +1,21 @@
+import dotenv from 'dotenv';
+
+// Load environment variables FIRST before any other imports
+dotenv.config();
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import rateLimit from 'express-rate-limit';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 
-dotenv.config();
-
 const app = express();
 const PORT = process.env.PORT || 5000;
+
+console.log('Server starting...');
+console.log('Environment:', process.env.NODE_ENV || 'development');
+console.log('KIMI_API_KEY loaded:', !!process.env.KIMI_API_KEY, 'Length:', process.env.KIMI_API_KEY?.length || 0);
 
 // Security middleware
 app.use(helmet());
@@ -59,7 +65,7 @@ app.get('/api/v1', (req, res) => {
   res.json({ message: 'Welcome to Golden Passage API', version: '1.0.0' });
 });
 
-// Import routes
+// Import routes (after dotenv.config())
 import authRoutes from './routes/auth';
 import userRoutes from './routes/users';
 import tradeRoutes from './routes/trades';

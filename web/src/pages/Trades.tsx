@@ -1,6 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { Search, Plus, Trash2, Edit2, X, ChevronDown, Brain, AlertTriangle, Download, Smile, Frown, Meh, Zap, TrendingUp } from 'lucide-react';
+import { Search, Plus, Trash2, Edit2, X, ChevronDown, Brain, AlertTriangle, Download, Smile, Frown, Meh, Zap } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAI } from '../contexts/AIContext';
+import type { AIAnalysis } from '../services/aiApi';
 
 // ==================== TYPES ====================
 
@@ -21,16 +23,7 @@ interface Trade {
   timestamp: number;
 }
 
-interface AIAnalysis {
-  fundamentalBias: string;
-  technicalBias: string;
-  plan: string;
-  riskWarning: string;
-  entryZone: string;
-  stopLoss: string;
-  takeProfit: string;
-  marketContext: string;
-}
+// AIAnalysis type is imported from services/aiApi
 
 interface Instrument {
   symbol: string;
@@ -89,229 +82,14 @@ const psychologyOptions = [
 const STORAGE_KEY = 'trades_v2';
 const DRAFT_KEY = 'trade_draft';
 
-// ==================== AI SERVICE ====================
-
-const KIMI_API_KEY = 'sk-kimi-ZYG0OqIc4MHrvFN8KLR8pUMps5q37N6Om69SzuthhZT1zNa8aWq9WJbeUkqwbwkO';
-const GOOGLE_AI_KEY = 'AIzaSyDgcpJUaMewv-MUl66khU_uP8gGzlwWAB0';
-
-// Demo mode - generates realistic analysis without APIs
-function generateDemoAnalysis(instrument: string, tradeType: string): AIAnalysis {
-  const currentDate = new Date().toISOString().split('T')[0];
-  const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', timeZone: 'America/New_York' });
-  
-  // Generate realistic price levels based on instrument
-  const basePrices: { [key: string]: number } = {
-    'EUR/USD': 1.0850,
-    'GBP/USD': 1.2650,
-    'USD/JPY': 148.50,
-    'USD/CHF': 0.8850,
-    'AUD/USD': 0.6550,
-    'NZD/USD': 0.5950,
-    'USD/CAD': 1.3650,
-    'EUR/GBP': 0.8570,
-    'GBP/JPY': 187.50,
-    'EUR/JPY': 161.20,
-    'XAU/USD': 2035.50,
-    'XAG/USD': 22.85,
-    'USOIL': 73.50,
-    'ES': 4950.00,
-    'NQ': 17650.00,
-    'YM': 38650.00,
-    'HSI': 16500.00
-  };
-  
-  const basePrice = basePrices[instrument] || 100.00;
-  const pipSize = instrument.includes('JPY') ? 0.01 : instrument.includes('XAU') ? 0.1 : instrument.includes('XAG') ? 0.01 : instrument.includes('ES') || instrument.includes('NQ') || instrument.includes('YM') || instrument.includes('HSI') ? 1 : 0.0001;
-  const pipValue = pipSize * 100;
-  
-  // Generate realistic levels
-  const entryZone = `${(basePrice - pipValue * 0.5).toFixed(4)} - ${(basePrice + pipValue * 0.5).toFixed(4)}`;
-  const stopLoss = (basePrice - pipValue * 2).toFixed(4);
-  const takeProfit1 = (basePrice + pipValue * 3).toFixed(4);
-  const takeProfit2 = (basePrice + pipValue * 5).toFixed(4);
-  
-  // Instrument-specific analysis
-  const analyses: { [key: string]: { fundamental: string; technical: string; context: string } } = {
-    'EUR/USD': {
-      context: 'EUR/USD is trading within yesterday\'s range, respecting the Asian session consolidation. Price is approaching a key order block on the 4H timeframe.',
-      fundamental: 'DXY showing weakness after Fed comments. Euro supported by better-than-expected EU inflation data. ECB maintains hawkish stance. Watch for US NFP data impact.',
-      technical: 'Daily trend is bullish with HH/HL structure. Price mitigated a bullish order block at 1.0820 and bounced. Resistance at 1.0900 (previous day high), support at 1.0800. Look for FVG fills on 15m for entries.'
-    },
-    'GBP/USD': {
-      context: 'Cable showing strength during London session. Price swept Asian session lows and reversed with momentum.',
-      fundamental: 'BoE maintaining higher rates than ECB providing sterling support. UK PMI data beat expectations. DXY weakness helping GBP pairs across the board.',
-      technical: 'Bullish structure on H4. Price formed a higher low at 1.2600. Key resistance at 1.2700 (previous week high). Bearish FVG at 1.2630-1.2640 may act as support on retest.'
-    },
-    'USD/JPY': {
-      context: 'USD/JPY consolidating near recent highs. Tokyo session showed indecision with inside bars forming.',
-      fundamental: 'BOJ intervention threats capping upside. US-Japan rate differential still supporting USD. Risk-off flows could trigger yen strength quickly. Monitor 10-year yields.',
-      technical: 'Strong uptrend but overextended on Daily. Key support at 147.00 (previous resistance turned support). Bearish order block at 149.00. Watch for liquidity sweep above 149.50 before potential reversal.'
-    },
-    'XAU/USD': {
-      context: 'Gold trading near key psychological $2000 level. Safe-haven flows active amid geopolitical tensions.',
-      fundamental: 'Gold supported by declining real yields and geopolitical risk premium. DXY weakness providing tailwind. Watch for Fed speaker comments that could impact rate expectations.',
-      technical: 'Daily bullish with price above 20 EMA. Key support at $2015 (bullish order block). Resistance at $2050. Silver lagging gold - potential arbitrage opportunity. Look for entries near $2020-2025 zone.'
-    }
-  };
-  
-  const defaultAnalysis = {
-    context: `${instrument} is consolidating during the current session. Price action shows indecision with reduced volatility. Key levels from Asian session remain respected.`,
-    fundamental: `Monitor DXY direction for USD pairs. Check forexfactory.com for today's high-impact news. Current market sentiment is mixed with no clear catalyst. Trade with caution during low volatility periods.`,
-    technical: `Mark previous day high/low as key levels. Identify order blocks on H4 timeframe. Wait for price to reach premium/discount zones before entering. Use proper risk management with 1-2% per trade.`
-  };
-  
-  const analysis = analyses[instrument] || defaultAnalysis;
-  
-  return {
-    marketContext: `[DEMO MODE - ${currentDate} ${currentTime} EST] ${analysis.context}`,
-    fundamentalBias: analysis.fundamental,
-    technicalBias: analysis.technical,
-    plan: `1. Wait for price to reach ${tradeType === 'Intraday' ? '15m/1H' : '4H/Daily'} premium/discount zone\n2. Look for liquidity sweep of Asian session highs/lows\n3. Confirm Market Structure Shift (MSS) on LTF\n4. Enter at Fair Value Gap or Order Block\n5. Target: ${takeProfit1} (1:1.5 RR) then ${takeProfit2}`,
-    riskWarning: `[DEMO MODE - APIs unavailable] Always verify with your own analysis. Check forexfactory.com for news. Risk only 1-2% per trade. Current analysis is generated for educational purposes.`,
-    entryZone: entryZone,
-    stopLoss: stopLoss,
-    takeProfit: takeProfit1
-  };
-}
-
-async function getKimiAnalysis(instrument: string, tradeType: string): Promise<AIAnalysis | null> {
-  try {
-    console.log('Trying Kimi API...');
-    const prompt = `As an expert institutional trader with 20+ years experience, analyze ${instrument} for ${tradeType} trading.
-
-Provide analysis in this EXACT format:
-
-MARKET_CONTEXT: Current price action and trend for ${instrument}
-FUNDAMENTAL_BIAS: DXY, interest rates, and macro factors affecting ${instrument}
-TECHNICAL_BIAS: Daily/4H trend, support/resistance, order blocks
-THE_PLAN:
-- Entry Zone: Price range
-- Stop Loss: Logical level
-- Take Profit 1: First target
-RISK_WARNING: Key risks to watch
-
-Be specific with price levels.`;
-
-    const response = await fetch('https://api.moonshot.cn/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${KIMI_API_KEY}`
-      },
-      body: JSON.stringify({
-        model: 'kimi-latest',
-        messages: [
-          { role: 'system', content: 'You are a professional trading analyst.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.3,
-        max_tokens: 1500
-      })
-    });
-
-    if (!response.ok) {
-      console.log('Kimi API failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    
-    if (!content || content.length < 50) return null;
-
-    const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
-    const fundamentalMatch = content.match(/FUNDAMENTAL_BIAS:\s*([^]*?)(?=TECHNICAL_BIAS:|$)/i);
-    const technicalMatch = content.match(/TECHNICAL_BIAS:\s*([^]*?)(?=THE_PLAN:|$)/i);
-    const planMatch = content.match(/THE_PLAN:\s*([^]*?)(?=RISK_WARNING:|$)/i);
-    const riskMatch = content.match(/RISK_WARNING:\s*([^]*?)$/i);
-    
-    const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/~]+)/i) || content.match(/Entry:\s*([\d.,\s\-/~]+)/i);
-    const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/~]+)/i) || content.match(/Stop:\s*([\d.,\s\-/~]+)/i);
-    const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/~]+)/i) || content.match(/TP1:\s*([\d.,\s\-/~]+)/i);
-
-    return {
-      marketContext: contextMatch?.[1]?.trim() || `${instrument} analysis`,
-      fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Check DXY and news',
-      technicalBias: technicalMatch?.[1]?.trim() || 'Mark S/R levels manually',
-      plan: planMatch?.[1]?.trim() || 'Follow your strategy',
-      riskWarning: riskMatch?.[1]?.trim() || 'Risk 1-2% per trade',
-      entryZone: entryMatch?.[1]?.trim() || 'See technical analysis',
-      stopLoss: stopMatch?.[1]?.trim() || 'Below structure',
-      takeProfit: tpMatch?.[1]?.trim() || 'Next S/R level'
-    };
-  } catch (error) {
-    console.error('Kimi error:', error);
-    return null;
-  }
-}
-
-async function getGoogleAnalysis(instrument: string, tradeType: string): Promise<AIAnalysis | null> {
-  try {
-    console.log('Trying Google Gemini API...');
-    const prompt = `As an expert institutional trader, analyze ${instrument} for ${tradeType} trading.
-
-Format:
-MARKET_CONTEXT: Current price action
-FUNDAMENTAL_BIAS: Macro drivers
-TECHNICAL_BIAS: Levels and structure
-THE_PLAN: Entry, stop, targets
-RISK_WARNING: Key risks
-
-Use exact format with colons.`;
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GOOGLE_AI_KEY}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 1500 }
-      })
-    });
-
-    if (!response.ok) {
-      console.log('Google API failed:', response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    
-    if (!content || content.length < 50) return null;
-
-    const contextMatch = content.match(/MARKET_CONTEXT:\s*([^]*?)(?=FUNDAMENTAL_BIAS:|$)/i);
-    const fundamentalMatch = content.match(/FUNDAMENTAL_BIAS:\s*([^]*?)(?=TECHNICAL_BIAS:|$)/i);
-    const technicalMatch = content.match(/TECHNICAL_BIAS:\s*([^]*?)(?=THE_PLAN:|$)/i);
-    const planMatch = content.match(/THE_PLAN:\s*([^]*?)(?=RISK_WARNING:|$)/i);
-    const riskMatch = content.match(/RISK_WARNING:\s*([^]*?)$/i);
-    
-    const entryMatch = content.match(/Entry Zone:\s*([\d.,\s\-/~]+)/i) || content.match(/Entry:\s*([\d.,\s\-/~]+)/i);
-    const stopMatch = content.match(/Stop Loss:\s*([\d.,\s\-/~]+)/i) || content.match(/Stop:\s*([\d.,\s\-/~]+)/i);
-    const tpMatch = content.match(/Take Profit 1:\s*([\d.,\s\-/~]+)/i) || content.match(/TP1:\s*([\d.,\s\-/~]+)/i);
-
-    return {
-      marketContext: contextMatch?.[1]?.trim() || `${instrument} analysis`,
-      fundamentalBias: fundamentalMatch?.[1]?.trim() || 'Check DXY and news',
-      technicalBias: technicalMatch?.[1]?.trim() || 'Mark S/R levels manually',
-      plan: planMatch?.[1]?.trim() || 'Follow your strategy',
-      riskWarning: riskMatch?.[1]?.trim() || 'Risk 1-2% per trade',
-      entryZone: entryMatch?.[1]?.trim() || 'See technical analysis',
-      stopLoss: stopMatch?.[1]?.trim() || 'Below structure',
-      takeProfit: tpMatch?.[1]?.trim() || 'Next S/R level'
-    };
-  } catch (error) {
-    console.error('Google error:', error);
-    return null;
-  }
-}
-
 // ==================== COMPONENT ====================
 
 export function Trades() {
   useAuth(); // Authentication check
+  const { openAIAssistant, prefillTradeData, setPrefillTradeData, shouldOpenTradeLog, setShouldOpenTradeLog } = useAI();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [showAIPlanner, setShowAIPlanner] = useState(false);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
   const [search, setSearch] = useState('');
   const [filterStrategy, setFilterStrategy] = useState('all');
@@ -331,14 +109,6 @@ export function Trades() {
     psychology: 'calm' as Trade['psychology'],
   });
 
-  // AI Planner state
-  const [aiForm, setAiForm] = useState({
-    instrument: '',
-    tradeType: 'Intraday'
-  });
-  const [aiAnalysis, setAiAnalysis] = useState<AIAnalysis | null>(null);
-  const [aiLoading, setAiLoading] = useState(false);
-
   // Instrument search
   const [instrumentSearch, setInstrumentSearch] = useState('');
   const [showInstrumentDropdown, setShowInstrumentDropdown] = useState(false);
@@ -355,14 +125,30 @@ export function Trades() {
       }
     }
     setLoading(false);
-    
-    // Check if AI planner should be opened from sidebar
-    const openAI = sessionStorage.getItem('openAIPlanner');
-    if (openAI === 'true') {
-      setShowAIPlanner(true);
-      sessionStorage.removeItem('openAIPlanner');
-    }
   }, []);
+
+  // Handle prefill data from AI Assistant
+  useEffect(() => {
+    if (prefillTradeData) {
+      setFormData(prev => ({
+        ...prev,
+        pair: prefillTradeData.pair || prev.pair,
+        entry: prefillTradeData.entry || prev.entry,
+        exit: prefillTradeData.exit || prev.exit,
+        notes: prefillTradeData.notes || prev.notes,
+      }));
+      setInstrumentSearch(prefillTradeData.pair || '');
+      setPrefillTradeData(null);
+    }
+  }, [prefillTradeData, setPrefillTradeData]);
+
+  // Handle opening trade log from AI Assistant
+  useEffect(() => {
+    if (shouldOpenTradeLog) {
+      setShowModal(true);
+      setShouldOpenTradeLog(false);
+    }
+  }, [shouldOpenTradeLog, setShouldOpenTradeLog]);
 
   // Load draft
   useEffect(() => {
@@ -387,27 +173,25 @@ export function Trades() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // L key - Open Log
       if (e.key === 'l' || e.key === 'L') {
-        if (!showModal && !showAIPlanner) {
+        if (!showModal) {
           setShowModal(true);
         }
       }
       // K key - Open AI Assistant
       if (e.key === 'k' || e.key === 'K') {
-        if (!showModal && !showAIPlanner) {
-          setShowAIPlanner(true);
-          handleInstrumentChange('');
+        if (!showModal) {
+          openAIAssistant();
         }
       }
       // Escape - Close modals
       if (e.key === 'Escape') {
         setShowModal(false);
-        setShowAIPlanner(false);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [showModal, showAIPlanner]);
+  }, [showModal, openAIAssistant]);
 
   // Click outside to close dropdown
   useEffect(() => {
@@ -517,41 +301,6 @@ export function Trades() {
     setShowModal(true);
   };
 
-  const handleInstrumentChange = (instrument: string) => {
-    setAiForm({ ...aiForm, instrument });
-  };
-
-  const handleAIAnalysis = async () => {
-    if (!aiForm.instrument) {
-      alert('Please select an instrument');
-      return;
-    }
-    setAiLoading(true);
-    
-    console.log('Starting AI analysis for:', aiForm.instrument);
-    
-    let analysis: AIAnalysis | null = null;
-    
-    // Try Kimi first
-    analysis = await getKimiAnalysis(aiForm.instrument, aiForm.tradeType);
-    
-    // Try Google if Kimi failed
-    if (!analysis) {
-      console.log('Kimi failed, trying Google...');
-      analysis = await getGoogleAnalysis(aiForm.instrument, aiForm.tradeType);
-    }
-    
-    // Use demo mode if both APIs failed
-    if (!analysis) {
-      console.log('Both APIs failed, using demo mode...');
-      analysis = generateDemoAnalysis(aiForm.instrument, aiForm.tradeType);
-    }
-    
-    console.log('Analysis complete:', analysis ? 'Success' : 'Failed');
-    setAiAnalysis(analysis);
-    setAiLoading(false);
-  };
-
   const exportToCSV = () => {
     const headers = ['Date', 'Instrument', 'Category', 'Type', 'Entry', 'Exit', 'Lot Size', 'P&L', 'Strategy', 'Psychology', 'Notes'];
     const rows = trades.map(t => [
@@ -604,11 +353,11 @@ export function Trades() {
         </div>
         <div className="flex gap-2">
           <button 
-            onClick={() => setShowAIPlanner(true)}
+            onClick={openAIAssistant}
             className="flex items-center gap-2 bg-purple-600/20 border border-purple-500/30 text-purple-300 px-4 py-2 rounded-lg hover:bg-purple-600/30 transition-colors"
           >
             <Brain size={18} />
-            AI Planner
+            AI Assistant
           </button>
           <button 
             onClick={exportToCSV}
@@ -802,8 +551,9 @@ export function Trades() {
 
       {/* Trade Log Modal */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50" onClick={() => setShowModal(false)}>
+          <div className="modal-overlay">
+            <div className="modal-content max-w-2xl" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="flex justify-between items-center p-6 border-b border-gray-800">
               <h2 className="text-xl font-semibold text-white">
@@ -993,185 +743,9 @@ export function Trades() {
             </div>
           </div>
         </div>
+      </div>
       )}
 
-      {/* AI Planner Modal */}
-      {showAIPlanner && (
-        <div className="modal-overlay" onClick={() => setShowAIPlanner(false)}>
-          <div className="modal-content max-w-3xl" onClick={e => e.stopPropagation()}>
-            {/* Header */}
-            <div className="flex justify-between items-center p-6 border-b border-gray-800">
-              <div>
-                <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                  <Brain className="text-purple-400" size={24} />
-                  Kimi AI Trade Planner
-                </h2>
-                <p className="text-gray-500 text-sm mt-1">Institutional-grade analysis powered by AI</p>
-              </div>
-              <button 
-                onClick={() => setShowAIPlanner(false)}
-                className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
-              {!aiAnalysis ? (
-                <>
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Select Instrument</label>
-                    <select
-                      value={aiForm.instrument}
-                      onChange={(e) => setAiForm({...aiForm, instrument: e.target.value})}
-                      className="select-field w-full"
-                    >
-                      <option value="">Choose instrument...</option>
-                      {instruments.map(i => (
-                        <option key={i.symbol} value={i.symbol}>{i.symbol} - {i.name}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="text-gray-400 text-sm mb-1 block">Trade Type</label>
-                    <div className="flex gap-2">
-                      {['Intraday', 'Swing', 'Position'].map(type => (
-                        <button
-                          key={type}
-                          onClick={() => setAiForm({...aiForm, tradeType: type})}
-                          className={`flex-1 py-2 rounded-lg transition-colors ${
-                            aiForm.tradeType === type 
-                              ? 'bg-purple-600 text-white' 
-                              : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
-                          }`}
-                        >
-                          {type}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
-                    <p className="text-sm text-blue-300 flex items-center gap-2">
-                      <Brain size={16} />
-                      Kimi AI will search for current market data including:
-                    </p>
-                    <ul className="text-xs text-gray-400 mt-2 space-y-1 ml-6 list-disc">
-                      <li>Real-time price and trend analysis</li>
-                      <li>Key support/resistance levels</li>
-                      <li>Recent news and economic events</li>
-                      <li>Technical setup with entry/stop/target</li>
-                    </ul>
-                  </div>
-
-                  <button
-                    onClick={handleAIAnalysis}
-                    disabled={aiLoading || !aiForm.instrument}
-                    className="w-full py-3 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-500 hover:to-purple-600 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {aiLoading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Searching market data & analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Brain size={20} />
-                        Analyze with Kimi AI
-                      </>
-                    )}
-                  </button>
-                </>
-              ) : (
-                <div className="space-y-4 animate-fade-in">
-                  {/* Analysis Results */}
-                  {aiAnalysis.marketContext?.includes('DEMO MODE') && (
-                    <div className="bg-yellow-900/30 border border-yellow-600/50 rounded-lg p-3 mb-4">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="text-yellow-400" size={18} />
-                        <span className="text-yellow-400 font-semibold text-sm">Demo Mode Active</span>
-                      </div>
-                      <p className="text-yellow-200/70 text-xs mt-1">
-                        AI APIs are unavailable. Showing generated analysis for educational purposes. 
-                        Always verify with your own research before trading.
-                      </p>
-                    </div>
-                  )}
-                  {aiAnalysis.marketContext && (
-                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4">
-                      <h3 className="text-blue-400 font-semibold mb-2 flex items-center gap-2">
-                        <TrendingUp size={18} />
-                        Market Context (AI-Searched)
-                      </h3>
-                      <p className="text-gray-300 text-sm">{aiAnalysis.marketContext}</p>
-                    </div>
-                  )}
-
-                  <div className="bg-gray-800/50 rounded-lg p-4">
-                    <h3 className="text-purple-400 font-semibold mb-2">Fundamental Bias</h3>
-                    <p className="text-gray-300 text-sm">{aiAnalysis.fundamentalBias}</p>
-                  </div>
-
-                  <div className="bg-gray-800/50 rounded-lg p-4">
-                    <h3 className="text-blue-400 font-semibold mb-2">Technical Bias</h3>
-                    <p className="text-gray-300 text-sm">{aiAnalysis.technicalBias}</p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <div className="bg-green-900/20 border border-green-700/30 rounded-lg p-3 text-center">
-                      <p className="text-green-400 text-xs mb-1">Entry Zone</p>
-                      <p className="text-white font-semibold">{aiAnalysis.entryZone}</p>
-                    </div>
-                    <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-3 text-center">
-                      <p className="text-red-400 text-xs mb-1">Stop Loss</p>
-                      <p className="text-white font-semibold">{aiAnalysis.stopLoss}</p>
-                    </div>
-                    <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-3 text-center">
-                      <p className="text-blue-400 text-xs mb-1">Take Profit</p>
-                      <p className="text-white font-semibold">{aiAnalysis.takeProfit}</p>
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800/50 rounded-lg p-4">
-                    <h3 className="text-orange-400 font-semibold mb-2">The Plan</h3>
-                    <p className="text-gray-300 text-sm whitespace-pre-line">{aiAnalysis.plan}</p>
-                  </div>
-
-                  <div className="bg-red-900/20 border border-red-700/30 rounded-lg p-4 flex items-start gap-3">
-                    <AlertTriangle className="text-red-400 flex-shrink-0 mt-0.5" size={18} />
-                    <div>
-                      <h3 className="text-red-400 font-semibold mb-1">Risk Warning</h3>
-                      <p className="text-gray-300 text-sm">{aiAnalysis.riskWarning}</p>
-                    </div>
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => {
-                        setAiAnalysis(null);
-                        setAiForm({ instrument: '', tradeType: 'Intraday' });
-                      }}
-                      className="flex-1 py-2.5 border border-gray-700 text-gray-300 rounded-lg hover:bg-gray-800 transition-colors"
-                    >
-                      New Analysis
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowAIPlanner(false);
-                        setShowModal(true);
-                      }}
-                      className="flex-1 py-2.5 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors font-medium"
-                    >
-                      Log This Trade
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

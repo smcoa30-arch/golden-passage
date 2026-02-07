@@ -14,6 +14,8 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useAI } from '../contexts/AIContext';
+import { AIAssistantModal } from './AIAssistantModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -31,6 +33,7 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { openAIAssistant } = useAI();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleNavClick = (path: string) => {
@@ -142,7 +145,7 @@ export function Layout({ children }: LayoutProps) {
               })}
             </nav>
 
-            {/* Pro Features Section */}
+            {/* AI Trade Assistant Section */}
             <div className="mt-8">
               <p className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                 AI Assistant
@@ -150,16 +153,15 @@ export function Layout({ children }: LayoutProps) {
               <div className="mt-2 p-4 rounded-xl bg-gradient-to-br from-gray-800/50 to-gray-900/50 border border-gray-700/50">
                 <div className="flex items-center gap-2 mb-2">
                   <Brain className="text-purple-400" size={20} />
-                  <span className="font-medium text-white">Kimi AI</span>
+                  <span className="font-medium text-white">AI Trade Assistant</span>
                 </div>
                 <p className="text-xs text-gray-400 mb-3">
-                  Get personalized trade analysis and strategy recommendations
+                  Get AI-powered trade analysis and strategy recommendations
                 </p>
                 <button 
                   onClick={() => {
-                    navigate('/trades');
-                    // Store a flag to open AI planner when trades page loads
-                    sessionStorage.setItem('openAIPlanner', 'true');
+                    openAIAssistant();
+                    setSidebarOpen(false);
                   }}
                   className="w-full py-2 px-3 rounded-lg bg-purple-600/20 hover:bg-purple-600/30 border border-purple-500/30 text-purple-300 text-sm transition-colors"
                 >
@@ -195,6 +197,9 @@ export function Layout({ children }: LayoutProps) {
           </div>
         </main>
       </div>
+      
+      {/* AI Assistant Modal - Available Globally */}
+      <AIAssistantModal />
     </div>
   );
 }

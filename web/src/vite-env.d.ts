@@ -13,6 +13,8 @@ interface ImportMetaEnv {
   readonly VITE_STRIPE_PRICE_ID: string
   readonly VITE_USDT_ADDRESS: string
   readonly VITE_API_URL: string
+  readonly VITE_KIMI_API_KEY: string
+  readonly VITE_GOOGLE_AI_KEY: string
 }
 
 interface ImportMeta {
