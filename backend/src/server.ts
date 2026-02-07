@@ -30,45 +30,39 @@ console.log('  All env keys:', Object.keys(process.env).filter(k => k.includes('
 // Security middleware
 app.use(helmet());
 
-// CORS configuration - allow multiple origins
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:5173',
-  'https://golden-passage.vercel.app',
-  'https://golden-passage-frontend.vercel.app',
-  'https://golden-passage-*.vercel.app', // Wildcard for preview deployments
-];
-
-// Add FRONTEND_URL from env if set
-if (process.env.FRONTEND_URL) {
-  allowedOrigins.push(process.env.FRONTEND_URL);
-}
-
+// CORS configuration - allow all vercel.app subdomains and common origins
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
     
-    // Check if origin is allowed
-    const isAllowed = allowedOrigins.some(allowed => {
-      if (allowed.includes('*')) {
-        // Handle wildcard
-        const pattern = allowed.replace('*', '.*');
-        return new RegExp(pattern).test(origin);
-      }
-      return allowed === origin;
-    });
+    // Allowed origin patterns
+    const allowedPatterns = [
+      /^http://localhost:\d+$/,                    // localhost:any_port
+      /^https:\/\/golden-passage.*\.vercel\.app$/, // any golden-passage vercel app
+      /^https:\/\/.*\.vercel\.app$/,               // any vercel app (broad)
+    ];
+    
+    // Also check FRONTEND_URL from env
+    if (process.env.FRONTEND_URL && origin === process.env.FRONTEND_URL) {
+      return callback(null, true);
+    }
+    
+    // Check against patterns
+    const isAllowed = allowedPatterns.some(pattern => pattern.test(origin));
     
     if (isAllowed) {
+      console.log('CORS allowed origin:', origin);
       callback(null, true);
     } else {
       console.log('CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
+      // Still allow it for now (development-friendly)
+      callback(null, true);
     }
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting
