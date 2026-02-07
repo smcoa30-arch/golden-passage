@@ -8,7 +8,12 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "migrate": "echo 'No migrations yet'",
-    "test": "jest"
+    "test": "jest",
+    "clean": "rimraf dist"
+  },
+  "overrides": {
+    "rimraf": "^5.0.5",
+    "glob": "^10.3.10"
   },
   "dependencies": {
     "express": "^4.18.2",
