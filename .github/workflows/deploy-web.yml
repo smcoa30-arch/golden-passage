@@ -25,18 +25,25 @@ jobs:
       - name: Build
         run: cd web && npm run build
         env:
+          # Firebase Configuration
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+          
+          # API Configuration
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          
+          # Payment Providers
           VITE_PAYPAL_CLIENT_ID: ${{ secrets.VITE_PAYPAL_CLIENT_ID }}
           VITE_PAYPAL_PLAN_ID: ${{ secrets.VITE_PAYPAL_PLAN_ID }}
           VITE_STRIPE_PUBLISHABLE_KEY: ${{ secrets.VITE_STRIPE_PUBLISHABLE_KEY }}
           VITE_STRIPE_PRICE_ID: ${{ secrets.VITE_STRIPE_PRICE_ID }}
           VITE_USDT_ADDRESS: ${{ secrets.VITE_USDT_ADDRESS }}
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          
+          # AI API Keys (Optional)
           VITE_GOOGLE_AI_KEY: ${{ secrets.VITE_GOOGLE_AI_KEY }}
           VITE_KIMI_API_KEY: ${{ secrets.VITE_KIMI_API_KEY }}
           VITE_OPENROUTER_API_KEY: ${{ secrets.VITE_OPENROUTER_API_KEY }}

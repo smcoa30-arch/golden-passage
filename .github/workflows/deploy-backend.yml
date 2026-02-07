@@ -35,4 +35,5 @@ jobs:
           working-directory: ./backend
         env:
           VERCEL_ENV: production
-          # AI API Keys will be pulled from Vercel Dashboard environment variables
+          # All environment variables are configured in Vercel Dashboard
+          # Go to: Project Settings > Environment Variables
